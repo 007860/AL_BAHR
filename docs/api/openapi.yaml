@@ -1,0 +1,197 @@
+openapi: 3.1.0
+info:
+  title: AL-BAHR HORIZON OS (HORIZON ONE) API
+  version: 1.0.0
+  description: >
+    Deterministic, Zero-AI Travel Operations OS API for AL-BAHR HORIZON TRAVELS & CONSULTANTS.
+    All mutations support Idempotency-Key where applicable, RBAC + object-level ownership,
+    optimistic version locks, and immutable audit logging.
+servers:
+  - url: https://os.albahrtravels.com
+    description: Proposed Production OS (Pending Deployment Approval)
+  - url: http://localhost:4000
+    description: Local Development Server
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
+        fieldErrors:
+          type: object
+          additionalProperties: { type: string }
+security:
+  - BearerAuth: []
+paths:
+  /api/v1/health:
+    get:
+      summary: Liveness & readiness probe (public, redacted)
+      security: []
+      responses:
+        '200': { description: Healthy }
+  /api/v1/company/branding:
+    get:
+      summary: Public approved branding & verified contacts
+      security: []
+      responses:
+        '200': { description: Brand settings }
+  /api/v1/auth/login:
+    post:
+      summary: Email/password authentication (rate-limited, no user enumeration)
+      security: []
+      responses:
+        '200': { description: Session token or MFA challenge }
+  /api/v1/auth/mfa/verify:
+    post:
+      summary: Verify TOTP code and upgrade session to aal2
+      responses:
+        '200': { description: Verified aal2 session }
+  /api/v1/auth/activate:
+    post:
+      summary: Redeem single-use hashed employee invitation token
+      security: []
+      responses:
+        '200': { description: Activated employee session }
+  /api/v1/auth/logout:
+    post:
+      summary: Revoke active session
+      responses:
+        '200': { description: Logged out }
+  /api/v1/dashboard:
+    get:
+      summary: Role-scoped KPI cards, alerts, approval queue & date range aggregates
+      responses:
+        '200': { description: Dashboard payload }
+  /api/v1/leads:
+    get:
+      summary: Search/filter role-scoped leads
+      responses:
+        '200': { description: Paginated leads }
+    post:
+      summary: Create lead with consent + deterministic least-loaded assignment (idempotent)
+      responses:
+        '201': { description: Created and assigned or triaged }
+  /api/v1/leads/{id}/assign:
+    post:
+      summary: Manager override / manual assign lead with mandatory reason
+      responses:
+        '200': { description: Assigned }
+  /api/v1/leads/{id}/convert:
+    post:
+      summary: Atomic convert lead -> single customer + case
+      responses:
+        '200': { description: Converted }
+  /api/v1/leads/merge:
+    post:
+      summary: Merge duplicate leads preserving history
+      responses:
+        '200': { description: Merged }
+  /api/v1/customers:
+    get: { summary: Scoped customer directory, responses: { '200': { description: OK } } }
+    post: { summary: Add authoritative customer profile, responses: { '201': { description: Created } } }
+  /api/v1/customers/{id}/timeline:
+    get: { summary: Customer timeline (masks internal notes from Customer), responses: { '200': { description: OK } } }
+  /api/v1/cases:
+    get: { summary: Scoped cases list, responses: { '200': { description: OK } } }
+    post: { summary: Create service case with template checklist, responses: { '201': { description: Created } } }
+  /api/v1/cases/{id}/state:
+    patch: { summary: Guarded case state transition, responses: { '200': { description: Updated } } }
+  /api/v1/cases/{id}/tasks:
+    post: { summary: Add task to case, responses: { '201': { description: Created } } }
+  /api/v1/tasks/{id}/complete:
+    post: { summary: Complete task with dependency check & atomic workload decrement, responses: { '200': { description: Completed } } }
+  /api/v1/flight-requests:
+    post: { summary: Create flight request & linked case, responses: { '201': { description: Created } } }
+  /api/v1/flight-requests/{id}/fares:
+    post: { summary: Add supplier-verified fare + configurable PKR 2000/pax markup, responses: { '201': { description: Created } } }
+  /api/v1/flight-bookings/{id}/issue-ticket:
+    post: { summary: Issue real supplier ticket after verified payment & e-ticket upload, responses: { '200': { description: Issued } } }
+  /api/v1/umrah/packages:
+    get: { summary: Browse active published Umrah packages (hides expired), responses: { '200': { description: OK } } }
+    post: { summary: Create Umrah package with separate Makkah/Madinah distances, responses: { '201': { description: Created } } }
+  /api/v1/umrah/packages/{id}/publish:
+    post: { summary: Approval-gated package publish to public projection, responses: { '200': { description: Published } } }
+  /api/v1/umrah/packages/{id}/expire:
+    post: { summary: Expire package (hides public offer, retains booking snapshots), responses: { '200': { description: Expired } } }
+  /api/v1/umrah/requests/draft:
+    post: { summary: Save offline-safe multi-step custom Umrah draft, responses: { '200': { description: Saved } } }
+  /api/v1/visa-cases:
+    post: { summary: Create visa case & versioned checklist, responses: { '201': { description: Created } } }
+  /api/v1/appointments/{id}/confirm:
+    post: { summary: Confirm appointment (requires real external evidence document), responses: { '200': { description: Confirmed } } }
+  /api/v1/hotels/requests:
+    post: { summary: Create hotel/transfer request, responses: { '201': { description: Created } } }
+  /api/v1/study/requests:
+    post: { summary: Create study abroad applicant case, responses: { '201': { description: Created } } }
+  /api/v1/quotes:
+    post: { summary: Create versioned itemized quote, responses: { '201': { description: Created } } }
+  /api/v1/quotes/{id}/send:
+    post: { summary: Freeze immutable sent version & notify customer, responses: { '200': { description: Sent } } }
+  /api/v1/quotes/{id}/accept:
+    post: { summary: Accept unexpired quote (idempotent invoice draft), responses: { '200': { description: Accepted } } }
+  /api/v1/invoices:
+    post: { summary: Generate sequential invoice from accepted quote, responses: { '201': { description: Created } } }
+  /api/v1/payments/evidence:
+    post: { summary: Upload bank slip (sets pending_review, NEVER marks paid), responses: { '201': { description: Pending review } } }
+  /api/v1/payments/{id}/verify:
+    post: { summary: Finance-only bank reconciliation + append-only ledger posting, responses: { '200': { description: Verified } } }
+  /api/v1/payments/{id}/reject:
+    post: { summary: Finance-only reject bank slip with reason, responses: { '200': { description: Rejected } } }
+  /api/v1/payments/{id}/refund:
+    post: { summary: Refund request enforcing dual-control threshold, responses: { '200': { description: Recorded } } }
+  /api/v1/ledger:
+    get: { summary: Read append-only ledger & profit (Finance/CEO), responses: { '200': { description: OK } } }
+  /api/v1/bookings/{id}/confirm:
+    post: { summary: Supplier confirm booking with real voucher evidence, responses: { '200': { description: Confirmed } } }
+  /api/v1/my-trips:
+    get: { summary: Customer/Partner isolated trip wallet, responses: { '200': { description: OK } } }
+  /api/v1/documents/upload-init:
+    post: { summary: Validate MIME/size and initialize private upload, responses: { '201': { description: Initialized } } }
+  /api/v1/documents/{id}/signed-url:
+    get: { summary: Issue short-lived signed download URL after ACL check, responses: { '200': { description: Signed URL } } }
+  /api/v1/documents/{id}/review:
+    post: { summary: Approve or reject document (reject requests replacement), responses: { '200': { description: Reviewed } } }
+  /api/v1/staff/invite:
+    post: { summary: Issue single-use hashed employee invite, responses: { '201': { description: Invited } } }
+  /api/v1/staff/{id}/deactivate:
+    post: { summary: Revoke all sessions and queue manager case reassignment, responses: { '200': { description: Deactivated } } }
+  /api/v1/attendance/check-in:
+    post: { summary: Timestamped Asia/Karachi check-in (duplicate guarded), responses: { '201': { description: Checked in } } }
+  /api/v1/partners:
+    get: { summary: B2B partner list / own org summary, responses: { '200': { description: OK } } }
+    post: { summary: Invite verified B2B partner (private edition), responses: { '201': { description: Created } } }
+  /api/v1/suppliers:
+    get: { summary: Vendor catalog & rate cards, responses: { '200': { description: OK } } }
+    post: { summary: Add supplier, responses: { '201': { description: Created } } }
+  /api/v1/cms/{id}/publish:
+    post: { summary: Publish approved website draft with versioned rollback support, responses: { '200': { description: Published } } }
+  /api/v1/campaigns/{id}/send:
+    post: { summary: Enqueue idempotent opt-in campaign deliveries, responses: { '200': { description: Queued } } }
+  /api/v1/subscribers/unsubscribe:
+    post: { summary: One-click consent revocation, responses: { '200': { description: Unsubscribed } } }
+  /api/v1/support/tickets:
+    get: { summary: Role-isolated support tickets, responses: { '200': { description: OK } } }
+    post: { summary: Create support ticket & smart assign, responses: { '201': { description: Created } } }
+  /api/v1/rules:
+    get: { summary: List deterministic IF/THEN rules, responses: { '200': { description: OK } } }
+    post: { summary: Create draft rule (allowlisted fields/operators only), responses: { '201': { description: Created } } }
+  /api/v1/rules/{id}/simulate:
+    post: { summary: Dry-run rule & smart assignment queue (zero DB mutations), responses: { '200': { description: Simulation output } } }
+  /api/v1/rules/{id}/activate:
+    post: { summary: CEO-approved atomic rule version activation, responses: { '200': { description: Activated } } }
+  /api/v1/rules/emergency-pause:
+    post: { summary: CEO MFA pause for automation category, responses: { '200': { description: Paused } } }
+  /api/v1/audit:
+    get: { summary: Role-scoped immutable audit log search, responses: { '200': { description: OK } } }
+  /api/v1/sessions/revoke-all:
+    post: { summary: Emergency CEO MFA revoke all sessions, responses: { '200': { description: Revoked } } }
+  /api/v1/backups/test-restore:
+    post: { summary: Run isolated staging restore verification, responses: { '200': { description: Verified } } }

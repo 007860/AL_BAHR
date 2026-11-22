@@ -1,0 +1,38 @@
+# Dependencies & Build Artifacts
+node_modules/
+dist/
+build/
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+*.apk
+*.aab
+*.ipa
+*.appimage
+*.msix
+*.exe
+.gradle/
+**/android/.gradle/
+**/android/local.properties
+**/android/app/build/
+
+# Environments & Secrets (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+key.properties
+
+# Local DB / Logs / Coverage
+*.sqlite
+*.db
+*.db-journal
+coverage/
+.nyc_output/
+logs/
+*.log
+.DS_Store
