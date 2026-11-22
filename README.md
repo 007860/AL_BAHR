@@ -13,7 +13,7 @@
 ```text
 AL_BAHR/
 ├── apps/
-│   └── horizon_one/            # Cross-platform Flutter client (Android APK, Web, Desktop)
+│   └── horizon_one/            # React 19 + TypeScript + Vite + Tailwind CSS client & Android APK wrapper
 ├── services/
 │   └── api/                    # TypeScript Modular Monolith API, Rule Engine, Smart Assignment & Tests
 ├── db/
@@ -25,7 +25,7 @@ AL_BAHR/
 │   ├── discovery/              # Read-only Milestone 0 audit of global-wayfinder-40
 │   ├── runbooks/               # Incident playbooks, backup/restore drills, security & deployment gates
 │   └── traceability/           # Screen & button traceability matrix
-└── .github/workflows/ci.yml    # Automated CI checks
+└── .github/workflows/ci.yml    # Automated CI checks & GitHub Releases APK publishing
 ```
 
 ## Quick Start (Backend API + Tests)
@@ -36,14 +36,15 @@ npm test                        # Runs Unit, Integration (E2E-01..E2E-10), and S
 OS_DEV_SEED=1 npm start         # Starts local HTTP API on 127.0.0.1:4000 (development sandbox only)
 ```
 
-## Quick Start (Flutter Client & Android APK)
+## Quick Start (React Client & Android APK)
 
 ```bash
 cd apps/horizon_one
-flutter pub get
-flutter analyze
-flutter test
-flutter build apk --release
+npm install
+npm test                        # Runs React Store, RBAC, Smart Assignment & Financial Gate tests
+npm run dev                     # Starts Vite React dev server on http://127.0.0.1:8080
+npm run build                   # Typechecks & builds production React bundle into dist/
+npm run build:apk               # Bundles React dist/ and builds Android release APK
 ```
 
 > **Note on Unconfirmed Brand/Legal Items (Blueprint Sec. 76):**

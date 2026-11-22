@@ -1,38 +1,20 @@
-# Dependencies & Build Artifacts
 node_modules/
 dist/
 build/
 .dart_tool/
-.packages
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 *.apk
 *.aab
-*.ipa
-*.appimage
-*.msix
-*.exe
-.gradle/
-**/android/.gradle/
-**/android/local.properties
-**/android/app/build/
-
-# Environments & Secrets (NEVER commit secrets)
+*.keystore
+*.jks
 .env
 .env.*
 !.env.example
-*.pem
-*.key
-*.jks
-*.keystore
-key.properties
-
-# Local DB / Logs / Coverage
-*.sqlite
-*.db
-*.db-journal
-coverage/
-.nyc_output/
-logs/
-*.log
 .DS_Store
+*.log
+apps/horizon_one/android/.gradle/
+apps/horizon_one/android/app/build/
+apps/horizon_one/android/app/src/main/assets/public/
+apps/horizon_one/android/local.properties

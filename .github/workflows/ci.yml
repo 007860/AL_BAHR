@@ -12,7 +12,8 @@ permissions:
   contents: write
 
 jobs:
-  backend-api-and-security:
+  api-and-security-tests:
+    name: Backend API, Deterministic Rules, Smart Assignment & Security Tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,65 +22,81 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: '24'
+      - run: npm install
+      - run: npm run typecheck
       - run: npm test
 
-  flutter-client-and-apk:
+  react-build-and-apk-release:
+    name: React Client Tests, Vite Build, Android APK & GitHub Release
     runs-on: ubuntu-latest
-    needs: [backend-api-and-security]
+    needs: api-and-security-tests
     defaults:
       run:
         working-directory: apps/horizon_one
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
-      - run: flutter build apk --release
-      - name: Prepare release APK & checksum
-        shell: bash
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install React dependencies
+        run: npm install
+
+      - name: Run React TypeScript check & automated tests
         run: |
-          mkdir -p ../../release-artifacts
-          SHORT_SHA="${GITHUB_SHA::7}"
-          cp build/app/outputs/flutter-apk/app-release.apk "../../release-artifacts/HORIZON-ONE-latest.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "../../release-artifacts/HORIZON-ONE-${SHORT_SHA}.apk"
-          (cd ../../release-artifacts && sha256sum HORIZON-ONE-*.apk > SHA256SUMS.txt)
-      - name: Upload APK workflow artifact
+          npm run typecheck
+          npm test
+
+      - name: Build production React bundle & Android Release APK
+        run: |
+          chmod +x android/gradlew
+          npm run build:apk
+          cp android/app/build/outputs/apk/release/app-release.apk HORIZON-ONE-latest.apk
+          sha256sum HORIZON-ONE-latest.apk > SHA256SUMS.txt
+
+      - name: Upload APK Artifact to Workflow Run
         uses: actions/upload-artifact@v4
         with:
-          name: horizon-one-apk
-          path: release-artifacts/
-      - name: Publish APK to GitHub Releases
-        if: github.event_name != 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd ../..
-          SHORT_SHA="${GITHUB_SHA::7}"
-          CHECKSUM=$(grep "HORIZON-ONE-latest.apk" release-artifacts/SHA256SUMS.txt | awk '{print $1}')
-          NOTES=$(printf "Automated HORIZON ONE Android APK build from commit \`%s\` (Zero-AI deterministic runtime).\n\n- **File:** \`HORIZON-ONE-latest.apk\`\n- **SHA-256:** \`%s\`\n- **Verified:** Backend unit/integration/security tests + Flutter analyze & widget tests passed." "${SHORT_SHA}" "${CHECKSUM}")
+          name: HORIZON-ONE-android-apk
+          path: |
+            apps/horizon_one/HORIZON-ONE-latest.apk
+            apps/horizon_one/SHA256SUMS.txt
 
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            TAG="${GITHUB_REF_NAME}"
-            if gh release view "${TAG}" >/dev/null 2>&1; then
-              gh release upload "${TAG}" "release-artifacts/HORIZON-ONE-${SHORT_SHA}.apk" release-artifacts/HORIZON-ONE-latest.apk release-artifacts/SHA256SUMS.txt --clobber
-            else
-              gh release create "${TAG}" "release-artifacts/HORIZON-ONE-${SHORT_SHA}.apk" release-artifacts/HORIZON-ONE-latest.apk release-artifacts/SHA256SUMS.txt --target "${GITHUB_SHA}" --title "HORIZON ONE ${TAG}" --notes "${NOTES}" --latest
-            fi
-          else
-            if gh release view "latest-apk" >/dev/null 2>&1; then
-              gh release edit "latest-apk" --title "HORIZON ONE Latest APK (${SHORT_SHA})" --notes "${NOTES}"
-              gh release upload "latest-apk" release-artifacts/HORIZON-ONE-latest.apk release-artifacts/SHA256SUMS.txt --clobber
-            else
-              gh release create "latest-apk" release-artifacts/HORIZON-ONE-latest.apk release-artifacts/SHA256SUMS.txt --target "${GITHUB_SHA}" --title "HORIZON ONE Latest APK (${SHORT_SHA})" --notes "${NOTES}" --latest
-            fi
-          fi
+      - name: Publish APK to GitHub Releases (latest-apk)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: "AL-BAHR HORIZON ONE — Latest React Android APK (Build #${{ github.run_number }})"
+          body: |
+            ### AL-BAHR HORIZON OS (`HORIZON ONE`) — Automated React Android APK Release
+            - **Stack:** React 19 + TypeScript + Vite + Tailwind CSS + Android WebView APK
+            - **Commit:** `${{ github.sha }}`
+            - **Build Number:** `#${{ github.run_number }}`
+            - **Download:** Tap **`HORIZON-ONE-latest.apk`** under **Assets** below to install on Android.
+          prerelease: false
+          overwrite_files: true
+          files: |
+            apps/horizon_one/HORIZON-ONE-latest.apk
+            apps/horizon_one/SHA256SUMS.txt
+
+      - name: Publish Versioned APK Release (on v* tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "AL-BAHR HORIZON ONE ${{ github.ref_name }}"
+          generate_release_notes: true
+          overwrite_files: true
+          files: |
+            apps/horizon_one/HORIZON-ONE-latest.apk
+            apps/horizon_one/SHA256SUMS.txt
