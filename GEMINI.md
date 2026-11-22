@@ -1,0 +1,8 @@
+# AL-BAHR HORIZON OS (`HORIZON ONE`) Workspace Rules
+
+1. **UI/UX Design Workflow (Mandatory):**
+   - Whenever designing, implementing, refactoring, or reviewing UI or UX screens/components in this repository (especially under `apps/horizon_one/`), ALWAYS read and follow `.agents/skills/ui-ux-pro-max/SKILL.md` first, running `python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --stack flutter` (and `--design-system` / `--domain ux`) as needed.
+   - Preserve the official AL-BAHR HORIZON design tokens (`Navy #0A192F`, `Gold #D9AD32`, `Teal #0A8C98` loading accent, `Surface #FFFFFF`, `Background #F6F8FB`) and do NOT redraw the official logo emblem (keep the pending-asset wordmark until owner supplies master SVG/PNG).
+2. **Zero-AI Production Runtime & Safety:**
+   - Never add production LLM/AI API calls or expose server secrets (`SUPABASE_SERVICE_ROLE_KEY`, SMTP keys) in client code.
+   - Keep `flutter analyze`, `flutter test`, and `services/api` `npm test` passing after changes.

@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'live_http_stub.dart' if (dart.library.io) 'live_http_io.dart' as live_http;
 import 'models.dart';
 
 class ActionResult {
@@ -131,16 +131,10 @@ class HorizonOsStore extends ChangeNotifier {
 
     if (useLiveServer) {
       try {
-        final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
-        final uri = Uri.parse('${serverBaseUrl.replaceAll(RegExp(r'/+$'), '')}/api/v1/auth/login');
-        final req = await client.postUrl(uri);
-        req.headers.contentType = ContentType.json;
-        req.write(jsonEncode({'email': email.trim(), 'password': password}));
-        final resp = await req.close();
-        final bodyStr = await resp.transform(utf8.decoder).join();
-        client.close();
+        final targetUrl = '${serverBaseUrl.replaceAll(RegExp(r'/+$'), '')}/api/v1/auth/login';
+        final resp = await live_http.postJson(targetUrl, {'email': email.trim(), 'password': password});
         if (resp.statusCode == 200) {
-          final parsed = jsonDecode(bodyStr) as Map<String, dynamic>;
+          final parsed = jsonDecode(resp.body) as Map<String, dynamic>;
           authToken = parsed['token'] as String?;
           final userMap = parsed['user'] as Map<String, dynamic>;
           currentUserId = userMap['id'] as String;
