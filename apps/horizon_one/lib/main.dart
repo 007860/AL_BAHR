@@ -51,6 +51,8 @@ class _HorizonOneAppState extends State<HorizonOneApp> {
           title: '${CompanyDirectory.workingAppName} — ${CompanyDirectory.brandName}',
           debugShowCheckedModeBanner: false,
           theme: BrandTokens.lightTheme(),
+          darkTheme: BrandTokens.darkTheme(),
+          themeMode: ThemeMode.light,
           home: home,
         );
       },

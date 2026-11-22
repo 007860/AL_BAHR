@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:material_ui/material_ui.dart';
 import '../core/l10n.dart';
 import '../core/models.dart';
@@ -25,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.store.runBootstrap();
     });
-    _autoAdvanceTimer = Timer(const Duration(milliseconds: 1600), () {
+    _autoAdvanceTimer = Timer(const Duration(milliseconds: 2200), () {
       if (mounted && !widget.store.bootstrapFailed && !widget.store.splashComplete) {
         widget.store.skipSplash();
       }
@@ -45,103 +46,167 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final reducedMotion = MediaQuery.of(context).disableAnimations;
     return Scaffold(
       backgroundColor: BrandTokens.navy,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 112,
-                    height: 112,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (!reducedMotion)
-                          AnimatedBuilder(
-                            animation: _ctrl,
-                            builder: (_, _) => CustomPaint(
-                              size: const Size(112, 112),
-                              painter: OrbitalHaloPainter(_ctrl.value),
-                            ),
-                          ),
-                        Container(
-                          width: 78,
-                          height: 78,
-                          decoration: BoxDecoration(
-                            color: BrandTokens.navyLight,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: BrandTokens.gold, width: 1.8),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'ABH',
-                            style: TextStyle(color: BrandTokens.gold, fontSize: 22, fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    CompanyDirectory.workingAppName,
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 1.2),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    CompanyDirectory.brandName,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: BrandTokens.gold, fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  StatusBadge.warning(s.t('logo_pending')),
-                  const SizedBox(height: 24),
-                  LinearProgressIndicator(
-                    value: widget.store.bootstrapProgress,
-                    backgroundColor: Colors.white12,
-                    color: BrandTokens.teal,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.store.bootstrapStage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 12,
-                    children: [
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: BrandTokens.gold,
-                          side: const BorderSide(color: BrandTokens.gold),
-                          minimumSize: const Size(44, 44),
-                        ),
-                        onPressed: widget.store.skipSplash,
-                        child: Text(s.t('skip_animation')),
-                      ),
-                      if (widget.store.bootstrapFailed)
-                        FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: BrandTokens.gold,
-                            foregroundColor: BrandTokens.navy,
-                            minimumSize: const Size(44, 44),
-                          ),
-                          onPressed: () => widget.store.runBootstrap(),
-                          child: Text(s.t('retry')),
-                        ),
-                    ],
-                  ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Travel backdrop image from verified public website assets
+          Image.asset(
+            'assets/images/travel-istanbul.jpg',
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Container(color: BrandTokens.navy),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  BrandTokens.navy.withValues(alpha: 0.45),
+                  BrandTokens.navy.withValues(alpha: 0.85),
                 ],
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.28), width: 1.2),
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 84,
+                                  height: 84,
+                                  decoration: BoxDecoration(
+                                    color: BrandTokens.navy.withValues(alpha: 0.85),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: BrandTokens.gold, width: 2),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    'ABH',
+                                    style: TextStyle(color: BrandTokens.gold, fontSize: 24, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                const Text(
+                                  CompanyDirectory.workingAppName,
+                                  style: TextStyle(color: BrandTokens.gold, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.6),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'AL-BAHR',
+                                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1.8),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'HORIZON TRAVELS & CONSULTANTS',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.8),
+                                ),
+                                const SizedBox(height: 10),
+                                StatusBadge.warning(s.t('logo_pending')),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      // Glowing Teal & Gold circular loading ring from Screen 1
+                      SizedBox(
+                        width: 58,
+                        height: 58,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (!reducedMotion)
+                              AnimatedBuilder(
+                                animation: _ctrl,
+                                builder: (_, _) => CustomPaint(
+                                  size: const Size(58, 58),
+                                  painter: OrbitalHaloPainter(_ctrl.value, ringColor: BrandTokens.teal),
+                                ),
+                              ),
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: BrandTokens.gold.withValues(alpha: 0.65), width: 1.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.store.bootstrapFailed ? widget.store.bootstrapStage : 'Loading... Please wait',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: 180,
+                        child: LinearProgressIndicator(
+                          value: widget.store.bootstrapProgress,
+                          backgroundColor: Colors.white24,
+                          color: BrandTokens.gold,
+                          minHeight: 4,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 12,
+                        children: [
+                          Semantics(
+                            button: true,
+                            label: 'Skip splash animation',
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: BrandTokens.gold,
+                                side: const BorderSide(color: BrandTokens.gold),
+                                minimumSize: const Size(120, 48),
+                              ),
+                              onPressed: widget.store.skipSplash,
+                              child: Text(s.t('skip_animation')),
+                            ),
+                          ),
+                          if (widget.store.bootstrapFailed)
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: BrandTokens.gold,
+                                foregroundColor: BrandTokens.navy,
+                                minimumSize: const Size(100, 48),
+                              ),
+                              onPressed: () => widget.store.runBootstrap(),
+                              child: Text(s.t('retry')),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -362,6 +427,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 TextButton(onPressed: _openInviteDialog, child: Text(s.t('activate_invite'))),
                 TextButton(onPressed: _openServerConfigDialog, child: const Text('Server URL')),
+                TextButton(
+                  onPressed: () {
+                    widget.store.splashComplete = false;
+                    widget.store.refresh();
+                  },
+                  child: const Text('Preview Splash'),
+                ),
               ],
             ),
             const Divider(height: 20),

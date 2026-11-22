@@ -51,8 +51,22 @@ void main() {
 
     await tester.pumpWidget(HorizonOneApp(store: store));
     await tester.pumpAndSettle();
-    expect(find.text('CEO / Owner Dashboard'), findsOneWidget);
+    expect(find.text('Featured Packages'), findsOneWidget);
     expect(find.text('More'), findsOneWidget);
+
+    // Navigate to Visa & Consultation + Experts
+    store.setModule(AppNavModule.visas);
+    await tester.pumpAndSettle();
+    expect(find.text('Visa & Consultation'), findsOneWidget);
+    expect(find.text('Meet Our Experts'), findsOneWidget);
+
+    // Navigate to My Tickets Boarding Pass screen
+    store.setModule(AppNavModule.myTrips);
+    await tester.pumpAndSettle();
+    expect(find.text('My Tickets'), findsOneWidget);
+    expect(find.text('My Bookings'), findsOneWidget);
+    expect(find.text('Past Trips'), findsOneWidget);
+    expect(find.text('E-Ticket / Boarding Pass'), findsOneWidget);
   });
 
   testWidgets('Role isolation, manual bank verification, flight markup, offline draft & Urdu RTL', (tester) async {

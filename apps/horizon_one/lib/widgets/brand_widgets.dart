@@ -100,36 +100,99 @@ class BrandWordmark extends StatelessWidget {
 
 class OrbitalHaloPainter extends CustomPainter {
   final double progress;
-  const OrbitalHaloPainter(this.progress);
+  final Color ringColor;
+  const OrbitalHaloPainter(this.progress, {this.ringColor = BrandTokens.gold});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2 - 4;
     final basePaint = Paint()
-      ..color = BrandTokens.gold.withValues(alpha: 0.25)
+      ..color = ringColor.withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 2.5;
     canvas.drawCircle(center, radius, basePaint);
 
     final sweepPaint = Paint()
-      ..color = BrandTokens.gold
+      ..color = ringColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
+      ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
 
     final start = progress * 2 * math.pi;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       start,
-      math.pi * 0.65,
+      math.pi * 0.75,
       false,
       sweepPaint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant OrbitalHaloPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(covariant OrbitalHaloPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.ringColor != ringColor;
+}
+
+/// Ticket shape with circular left & right boarding-pass notches.
+class BoardingPassClipper extends CustomClipper<Path> {
+  final double notchOffsetFromBottom;
+  const BoardingPassClipper({this.notchOffsetFromBottom = 92});
+
+  @override
+  Path getClip(Size size) {
+    const r = 14.0;
+    const corner = 18.0;
+    final notchY = math.max(corner + r, size.height - notchOffsetFromBottom);
+
+    final path = Path()
+      ..moveTo(corner, 0)
+      ..lineTo(size.width - corner, 0)
+      ..quadraticBezierTo(size.width, 0, size.width, corner)
+      ..lineTo(size.width, notchY - r)
+      ..arcToPoint(Offset(size.width, notchY + r), radius: const Radius.circular(r), clockwise: false)
+      ..lineTo(size.width, size.height - corner)
+      ..quadraticBezierTo(size.width, size.height, size.width - corner, size.height)
+      ..lineTo(corner, size.height)
+      ..quadraticBezierTo(0, size.height, 0, size.height - corner)
+      ..lineTo(0, notchY + r)
+      ..arcToPoint(Offset(0, notchY - r), radius: const Radius.circular(r), clockwise: false)
+      ..lineTo(0, corner)
+      ..quadraticBezierTo(0, 0, corner, 0)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant BoardingPassClipper oldClipper) =>
+      oldClipper.notchOffsetFromBottom != notchOffsetFromBottom;
+}
+
+/// Deterministic visual barcode strip derived from a real booking/ticket reference.
+class DeterministicBarcodePainter extends CustomPainter {
+  final String seed;
+  const DeterministicBarcodePainter(this.seed);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = BrandTokens.navy;
+    final codes = seed.codeUnits.isEmpty ? [65, 76, 66] : seed.codeUnits;
+    var x = 4.0;
+    var idx = 0;
+    while (x < size.width - 4) {
+      final val = codes[idx % codes.length] + idx * 7;
+      final barW = (val % 3 + 1) * 1.6;
+      final gap = ((val >> 2) % 2 + 1) * 1.8;
+      if (x + barW <= size.width - 4) {
+        canvas.drawRect(Rect.fromLTWH(x, 4, barW, size.height - 8), paint);
+      }
+      x += barW + gap;
+      idx++;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DeterministicBarcodePainter oldDelegate) => oldDelegate.seed != seed;
 }
 
 class StatusBadge extends StatelessWidget {
@@ -174,9 +237,11 @@ class SkeletonLoadingBlock extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2.5, color: BrandTokens.teal),
             ),
             SizedBox(width: 10),
-            Text(
-              'Loading workspace data (never showing fake 0 metrics before verified)...',
-              style: TextStyle(color: BrandTokens.teal, fontWeight: FontWeight.w600, fontSize: 13),
+            Expanded(
+              child: Text(
+                'Loading workspace data (never showing fake 0 metrics before verified)...',
+                style: TextStyle(color: BrandTokens.teal, fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ),
           ],
         ),

@@ -18,19 +18,7 @@ class OpsModulesView extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (store.activeModule) {
       case AppNavModule.visas:
-        return _simpleListModule(
-          context,
-          title: 'Visa Services (Jurisdiction Checklists & Embassy Tracking)',
-          subtitle: 'Never fabricates visa approvals; actual confirmation document required before Approved status.',
-          items: store.visas,
-          itemTitle: (m) => '${m['country']} · ${m['status']}',
-          itemSub: (m) => m['note'] ?? '',
-          actionLabel: '+ New Visa Case',
-          onAction: () {
-            store.visas.insert(0, {'id': 'vs-${store.visas.length + 1}', 'country': 'UK Visit Visa', 'status': 'Checklist Preparing', 'note': 'Version v1 checklist generated'});
-            store.refresh();
-          },
-        );
+        return _buildVisasAndExperts(context);
       case AppNavModule.appointments:
         return _simpleListModule(
           context,
@@ -158,6 +146,180 @@ class OpsModulesView extends StatelessWidget {
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildVisasAndExperts(BuildContext context) {
+    final categories = [
+      (title: 'Visitor Visa', sub: 'Visitor visa consultation & checklist', icon: Icons.badge_outlined, bg: BrandTokens.goldSoft, fg: BrandTokens.gold),
+      (title: 'Business Visa', sub: 'Business visa consultation & documentation', icon: Icons.work_outline, bg: BrandTokens.navy, fg: BrandTokens.gold),
+      (title: 'Student Consultation', sub: 'Study abroad intake & university guidance', icon: Icons.school_outlined, bg: BrandTokens.navy, fg: BrandTokens.gold),
+    ];
+
+    final experts = [
+      (name: store.staff.isNotEmpty ? store.staff[0].name : 'Visa Specialist', role: 'Senior Consultant', avatar: 'assets/images/portrait-ceo.jpg', service: 'visa'),
+      (name: store.staff.length > 1 ? store.staff[1].name : 'Travel Ops Lead', role: 'Travel Consultant', avatar: 'assets/images/portrait-director.jpg', service: 'study'),
+    ];
+
+    void openBookConsultation(String topic, String serviceCode) {
+      final nameCtrl = TextEditingController(text: store.currentUserName);
+      final phoneCtrl = TextEditingController(text: '+92 ');
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Book Consultation — $topic'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Routes automatically to our least-loaded eligible consultant.', style: TextStyle(fontSize: 12, color: BrandTokens.textMuted)),
+              const SizedBox(height: 10),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Applicant Name')),
+              const SizedBox(height: 8),
+              TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Phone (+92...)')),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                final r = store.createAndAssignLead(
+                  fullName: nameCtrl.text,
+                  phone: phoneCtrl.text,
+                  serviceType: serviceCode,
+                  source: 'visa_consultation_screen',
+                  consentGiven: true,
+                );
+                Navigator.pop(ctx);
+                _toast(context, r.message, ok: r.ok);
+              },
+              child: const Text('Request Consultation'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Visa & Consultation', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        const Text('Jurisdiction checklists & expert guidance · Never fabricates embassy approvals.', style: TextStyle(fontSize: 12, color: BrandTokens.textMuted)),
+        const SizedBox(height: 12),
+        TextField(
+          onChanged: (v) {
+            store.searchQuery = v;
+            store.refresh();
+          },
+          decoration: const InputDecoration(
+            hintText: 'Search visa categories or destinations...',
+            prefixIcon: Icon(Icons.search, size: 20),
+          ),
+        ),
+        const SizedBox(height: 14),
+        ...categories.map((cat) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Card(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => openBookConsultation(cat.title, cat.title.contains('Student') ? 'study' : 'visa'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(color: cat.bg, borderRadius: BorderRadius.circular(12)),
+                          alignment: Alignment.center,
+                          child: Icon(cat.icon, color: cat.fg, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(cat.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                              const SizedBox(height: 2),
+                              Text(cat.sub, style: const TextStyle(fontSize: 12, color: BrandTokens.textMuted)),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: BrandTokens.textMuted),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'Meet Our Experts',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (store.currentRole.permittedModules.contains(AppNavModule.employees))
+              TextButton(onPressed: () => store.setModule(AppNavModule.employees), child: const Text('View All')),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = constraints.maxWidth >= 520 ? 185.0 : ((constraints.maxWidth - 12) / 2).clamp(140.0, 220.0);
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: experts.map((ex) => SizedBox(
+                    width: cardWidth,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: BrandTokens.navy,
+                              backgroundImage: AssetImage(ex.avatar),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(ex.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                            const SizedBox(height: 2),
+                            Text(ex.role, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: BrandTokens.textMuted)),
+                            const SizedBox(height: 10),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: BrandTokens.gold,
+                                foregroundColor: BrandTokens.navy,
+                                minimumSize: const Size(double.infinity, 44),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                              ),
+                              onPressed: () => openBookConsultation('With ${ex.name}', ex.service),
+                              child: const Text('Book Now', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )).toList(),
+            );
+          },
+        ),
+        const SizedBox(height: 18),
+        const Text('Active Visa Files', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        ...store.visas.map((m) => Card(
+              child: ListTile(
+                title: Text('${m['country']} · ${m['status']}'),
+                subtitle: Text(m['note'] ?? ''),
+              ),
+            )),
+      ],
+    );
   }
 
   Widget _simpleListModule(

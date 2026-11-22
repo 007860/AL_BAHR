@@ -143,7 +143,11 @@ class ResponsiveOsShell extends StatelessWidget {
     final isTablet = width >= 768 && width < 1280;
     final isMobile = width < 768;
     final permitted = store.currentRole.permittedModules;
-    final primaryBottom = permitted.take(3).toList();
+    final primaryBottom = [
+      AppNavModule.dashboard,
+      if (permitted.contains(AppNavModule.myTrips)) AppNavModule.myTrips else if (permitted.contains(AppNavModule.cases)) AppNavModule.cases else permitted[1 % permitted.length],
+      if (permitted.contains(AppNavModule.visas)) AppNavModule.visas else if (permitted.contains(AppNavModule.settings)) AppNavModule.settings else permitted.last,
+    ];
 
     final contentBody = SingleChildScrollView(
       padding: EdgeInsets.all(isDesktop ? 24 : 16),
@@ -241,70 +245,82 @@ class ResponsiveOsShell extends StatelessWidget {
       ),
     );
 
-    return Directionality(
-      textDirection: s.direction,
-      child: Scaffold(
+    return PopScope(
+      canPop: store.activeModule == AppNavModule.dashboard,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && store.activeModule != AppNavModule.dashboard) {
+          store.setModule(AppNavModule.dashboard);
+        }
+      },
+      child: Directionality(
+        textDirection: s.direction,
+        child: Scaffold(
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(isMobile ? 56 : 64),
-          child: Container(
-            height: isMobile ? 56 : 64,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: isMobile ? BrandTokens.navy : BrandTokens.surface,
-              border: Border(bottom: BorderSide(color: isMobile ? BrandTokens.navyLight : BrandTokens.border)),
-            ),
-            child: Row(
-              children: [
-                if (isMobile)
-                  const Expanded(child: BrandWordmark(compact: true, onDark: true))
-                else ...[
-                  Text(store.activeModule.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 340),
-                      child: SizedBox(
-                        height: 38,
-                        child: TextField(
-                          onChanged: (v) {
-                            store.searchQuery = v;
-                            store.refresh();
-                          },
-                          decoration: InputDecoration(
-                            hintText: s.t('search_hint'),
-                            prefixIcon: const Icon(Icons.search, size: 18),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+          child: Material(
+            color: isMobile ? BrandTokens.navy : BrandTokens.surface,
+            child: Container(
+              height: isMobile ? 56 : 64,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: isMobile ? BrandTokens.navyLight : BrandTokens.border)),
+              ),
+              child: IconTheme(
+                data: IconThemeData(color: isMobile ? Colors.white : BrandTokens.textPrimary),
+                child: Row(
+                  children: [
+                    if (isMobile)
+                      const Expanded(child: BrandWordmark(compact: true, onDark: true))
+                    else ...[
+                      Text(store.activeModule.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 340),
+                          child: SizedBox(
+                            height: 38,
+                            child: TextField(
+                              onChanged: (v) {
+                                store.searchQuery = v;
+                                store.refresh();
+                              },
+                              decoration: InputDecoration(
+                                hintText: s.t('search_hint'),
+                                prefixIcon: const Icon(Icons.search, size: 18),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                              ),
+                            ),
                           ),
                         ),
                       ),
+                    ],
+                    IconButton(
+                      tooltip: store.isOffline ? 'Go Online' : 'Simulate Offline',
+                      color: isMobile ? Colors.white : BrandTokens.textPrimary,
+                      onPressed: () => store.toggleOffline(!store.isOffline),
+                      icon: Icon(store.isOffline ? Icons.cloud_off : Icons.cloud_done_outlined, color: isMobile ? Colors.white : BrandTokens.textPrimary),
                     ),
-                  ),
-                ],
-                IconButton(
-                  tooltip: store.isOffline ? 'Go Online' : 'Simulate Offline',
-                  color: isMobile ? Colors.white : BrandTokens.textPrimary,
-                  onPressed: () => store.toggleOffline(!store.isOffline),
-                  icon: Icon(store.isOffline ? Icons.cloud_off : Icons.cloud_done_outlined),
+                    IconButton(
+                      tooltip: 'English / Urdu RTL',
+                      color: isMobile ? Colors.white : BrandTokens.textPrimary,
+                      onPressed: () => store.setLocale(store.locale == 'en' ? 'ur' : 'en'),
+                      icon: Icon(Icons.translate, color: isMobile ? Colors.white : BrandTokens.textPrimary),
+                    ),
+                    IconButton(
+                      tooltip: 'Support Center',
+                      color: isMobile ? Colors.white : BrandTokens.textPrimary,
+                      onPressed: () => store.setModule(AppNavModule.support),
+                      icon: Icon(Icons.help_outline, color: isMobile ? Colors.white : BrandTokens.textPrimary),
+                    ),
+                    IconButton(
+                      tooltip: 'Logout',
+                      color: isMobile ? Colors.white : BrandTokens.textPrimary,
+                      onPressed: store.signOut,
+                      icon: Icon(Icons.logout, color: isMobile ? Colors.white : BrandTokens.textPrimary),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  tooltip: 'English / Urdu RTL',
-                  color: isMobile ? Colors.white : BrandTokens.textPrimary,
-                  onPressed: () => store.setLocale(store.locale == 'en' ? 'ur' : 'en'),
-                  icon: const Icon(Icons.translate),
-                ),
-                IconButton(
-                  tooltip: 'Support Center',
-                  color: isMobile ? Colors.white : BrandTokens.textPrimary,
-                  onPressed: () => store.setModule(AppNavModule.support),
-                  icon: const Icon(Icons.help_outline),
-                ),
-                IconButton(
-                  tooltip: 'Logout',
-                  color: isMobile ? Colors.white : BrandTokens.textPrimary,
-                  onPressed: store.signOut,
-                  icon: const Icon(Icons.logout),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -376,7 +392,7 @@ class ResponsiveOsShell extends StatelessWidget {
         ),
         bottomNavigationBar: isMobile
             ? NavigationBar(
-                height: 64,
+                height: 68,
                 selectedIndex: primaryBottom.contains(store.activeModule) ? primaryBottom.indexOf(store.activeModule) : 3,
                 onDestinationSelected: (idx) {
                   if (idx < primaryBottom.length) {
@@ -386,11 +402,12 @@ class ResponsiveOsShell extends StatelessWidget {
                   }
                 },
                 destinations: [
-                  ...primaryBottom.map((m) => NavigationDestination(icon: Icon(_iconFor(m)), label: m.title.split(' ').first)),
-                  const NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
+                  ...primaryBottom.map((m) => NavigationDestination(icon: Icon(_iconFor(m)), label: m == AppNavModule.myTrips ? 'Tickets' : m.title.split(' ').first)),
+                  const NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'More'),
                 ],
               )
             : null,
+      ),
       ),
     );
   }
