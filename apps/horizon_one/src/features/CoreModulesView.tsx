@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useHorizonStore } from '../core/StoreContext.tsx';
 import { PERMITTED_MODULES } from '../core/models.ts';
-import type { AppNavModule, BookingRecord } from '../core/models.ts';
-import { BoardingPassCard, StatusBadge } from '../components/BrandWidgets.tsx';
+import type { AppNavModule, BookingRecord, SocialPlatform } from '../core/models.ts';
+import {
+  BoardingPassCard,
+  SocialPlatformBadge,
+  StatusBadge,
+} from '../components/BrandWidgets.tsx';
 import {
   Bell,
   Building2,
@@ -13,6 +17,7 @@ import {
   Plane,
   Plus,
   Search,
+  Share2,
   Star,
   Upload,
   XCircle,
@@ -26,6 +31,7 @@ export const CoreModulesView: React.FC = () => {
   const [leadName, setLeadName] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
   const [leadService, setLeadService] = useState('umrah');
+  const [leadPlatform, setLeadPlatform] = useState<SocialPlatform | ''>('whatsapp');
   const [leadConsent, setLeadConsent] = useState(true);
 
   // Flight markup form state
@@ -138,7 +144,7 @@ export const CoreModulesView: React.FC = () => {
     ) : null;
 
   // ---------------------------------------------------------------------------
-  // 1. DASHBOARD (Reference Screen 2 + Role-Gated KPIs & Finance Queue)
+  // 1. DASHBOARD (Reference Screen 2 + Social Channels Strip + KPIs)
   // ---------------------------------------------------------------------------
   if (store.activeModule === 'dashboard') {
     const greetingTarget =
@@ -213,6 +219,10 @@ export const CoreModulesView: React.FC = () => {
     ];
 
     const pendingSlips = store.payments.filter((p) => p.status === 'pending_review');
+    const totalSocialLeads = store.socialConnectors.reduce(
+      (acc, c) => acc + c.leadsCapturedCount,
+      0,
+    );
 
     return (
       <div className="space-y-6">
@@ -226,8 +236,8 @@ export const CoreModulesView: React.FC = () => {
                 <span>Hello, </span>
                 <span className="text-[#D9AD32]">{greetingTarget}</span>
               </h2>
-              <p className="mt-1 text-xs font-medium text-white/70">
-                {store.notifications.length} notifications await you · Zero-AI Verified Workspace
+              <p className="mt-1 text-xs font-medium text-white/75">
+                {store.notifications.length} notifications await you · AL-BAHR HORIZON Cloud
               </p>
             </div>
 
@@ -341,6 +351,50 @@ export const CoreModulesView: React.FC = () => {
           </div>
         </section>
 
+        {/* Live Social Media Connectors Overview Strip */}
+        {permitted.includes('socialMedia') && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-[#0A6C74]" />
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#0A192F]">
+                    Connected Social Media Channels
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {totalSocialLeads} social leads captured across WhatsApp, Facebook, Instagram,
+                    TikTok, YouTube, LinkedIn &amp; Telegram
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => store.setModule('socialMedia')}
+                className="min-h-10 rounded-xl bg-[#0A192F] px-3.5 py-1.5 text-xs font-bold text-[#D9AD32] transition hover:bg-[#13294B]"
+              >
+                Manage Connectors &amp; Publish
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {store.socialConnectors.map((conn) => (
+                <button
+                  key={conn.id}
+                  type="button"
+                  onClick={() => store.setModule('socialMedia')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#0A192F] transition hover:bg-slate-100"
+                >
+                  <SocialPlatformBadge platform={conn.platform} />
+                  <span>{conn.handle}</span>
+                  <span className="rounded-full bg-[#E8F8F0] px-1.5 py-0.5 text-[10px] font-extrabold text-[#117A4B]">
+                    {conn.leadsCapturedCount} leads
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Role-Scoped Operational KPIs */}
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -356,7 +410,7 @@ export const CoreModulesView: React.FC = () => {
             <p className="mt-1 text-2xl font-black text-[#9A6700]">{pendingSlips.length}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <span className="text-xs font-bold text-slate-500">Scoped Bookings</span>
+            <span className="text-xs font-bold text-slate-500">Active Bookings</span>
             <p className="mt-1 text-2xl font-black text-[#0A6C74]">
               {store.scopedBookings.length}
             </p>
@@ -373,8 +427,7 @@ export const CoreModulesView: React.FC = () => {
                     Finance Payment Approval Queue
                   </h3>
                   <p className="text-xs text-slate-600">
-                    Uploaded bank slips never mark an invoice paid until verified against the bank
-                    statement.
+                    Verify bank deposit slips against the bank statement to unlock ticket issuance.
                   </p>
                 </div>
                 <StatusBadge variant="warning" label={`${pendingSlips.length} Pending Review`} />
@@ -402,7 +455,7 @@ export const CoreModulesView: React.FC = () => {
                             store.verifyOrRejectPayment({
                               paymentId: pay.id,
                               approve: true,
-                              reason: 'Verified against Meezan statement',
+                              reason: 'Verified against Meezan Bank statement',
                             }),
                           )
                         }
@@ -510,7 +563,7 @@ export const CoreModulesView: React.FC = () => {
                   onDownloadTicketClick={(target) =>
                     notifyAction({
                       ok: true,
-                      message: `Signed URL generated for ${target.ticketOrVoucherFile} (Ref: ${target.supplierRef})`,
+                      message: `Signed E-Ticket PDF ready: ${target.ticketOrVoucherFile} (Ref: ${target.supplierRef})`,
                     })
                   }
                 />
@@ -523,7 +576,7 @@ export const CoreModulesView: React.FC = () => {
   }
 
   // ---------------------------------------------------------------------------
-  // 3. INBOX & LEADS (Smart Least-Load Assignment + Convert to Case)
+  // 3. INBOX & LEADS (Web + Social Media Lead Capture & Smart Consultant Routing)
   // ---------------------------------------------------------------------------
   if (store.activeModule === 'inbox') {
     return (
@@ -531,26 +584,42 @@ export const CoreModulesView: React.FC = () => {
         {renderFeedbackBanner()}
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-extrabold text-[#0A192F]">
-            Ingest Lead (Deterministic Smart Least-Load Assignment)
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-extrabold text-[#0A192F]">
+              Capture New Inquiry / Social Media Lead
+            </h2>
+            <button
+              type="button"
+              onClick={() => store.setModule('socialMedia')}
+              className="text-xs font-bold text-[#0A6C74] hover:underline"
+            >
+              Configure Social Webhooks →
+            </button>
+          </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const res = store.createAndAssignLead({
-                fullName: leadName,
-                phone: leadPhone,
-                serviceType: leadService,
-                source: 'OS Portal Intake',
-                consentGiven: leadConsent,
-              });
+              const res = leadPlatform
+                ? store.ingestSocialLead({
+                    platform: leadPlatform,
+                    fullName: leadName,
+                    phone: leadPhone,
+                    serviceType: leadService,
+                  })
+                : store.createAndAssignLead({
+                    fullName: leadName,
+                    phone: leadPhone,
+                    serviceType: leadService,
+                    source: 'Direct Portal Intake',
+                    consentGiven: leadConsent,
+                  });
               notifyAction(res);
               if (res.ok) {
                 setLeadName('');
                 setLeadPhone('');
               }
             }}
-            className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4"
+            className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-5"
           >
             <input
               type="text"
@@ -576,12 +645,26 @@ export const CoreModulesView: React.FC = () => {
               <option value="flight">Flight Ticketing</option>
               <option value="study">Study Abroad</option>
             </select>
+            <select
+              value={leadPlatform}
+              onChange={(e) => setLeadPlatform(e.target.value as SocialPlatform | '')}
+              className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="whatsapp">WhatsApp Business</option>
+              <option value="instagram">Instagram Direct</option>
+              <option value="facebook">Facebook Lead Ads</option>
+              <option value="tiktok">TikTok Lead Form</option>
+              <option value="linkedin">LinkedIn Page</option>
+              <option value="telegram">Telegram Channel</option>
+              <option value="youtube">YouTube Inquiry</option>
+              <option value="">Website / Walk-In</option>
+            </select>
             <button
               type="submit"
               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-[#0A192F] px-4 py-2 text-xs font-bold text-white"
             >
               <Plus className="h-4 w-4 text-[#D9AD32]" />
-              Create &amp; Auto-Assign
+              Add &amp; Assign
             </button>
           </form>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-slate-600">
@@ -590,7 +673,7 @@ export const CoreModulesView: React.FC = () => {
               checked={leadConsent}
               onChange={(e) => setLeadConsent(e.target.checked)}
             />
-            Explicit customer communication consent verified
+            Customer communication opt-in verified
           </label>
         </div>
 
@@ -604,12 +687,15 @@ export const CoreModulesView: React.FC = () => {
                 key={l.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <div>
-                  <h3 className="text-sm font-extrabold text-[#0A192F]">
-                    {l.fullName} · {l.phone}
-                  </h3>
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-extrabold text-[#0A192F]">
+                      {l.fullName} · {l.phone}
+                    </h3>
+                    {l.socialPlatform && <SocialPlatformBadge platform={l.socialPlatform} />}
+                  </div>
                   <p className="text-xs text-slate-500">
-                    Service: {l.serviceType.toUpperCase()} · Source: {l.source} · Assignee:{' '}
+                    Service: {l.serviceType.toUpperCase()} · Source: {l.source} · Consultant:{' '}
                     <span className="font-bold text-[#0A6C74]">{assignee}</span>
                   </p>
                 </div>
@@ -637,7 +723,7 @@ export const CoreModulesView: React.FC = () => {
   }
 
   // ---------------------------------------------------------------------------
-  // 4. CUSTOMERS (With Internal Staff Note Isolation)
+  // 4. CUSTOMERS
   // ---------------------------------------------------------------------------
   if (store.activeModule === 'customers') {
     const canSeeInternalNotes =
@@ -730,11 +816,11 @@ export const CoreModulesView: React.FC = () => {
         {renderFeedbackBanner()}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-extrabold text-[#0A192F]">
-            Flight Inquiry &amp; Deterministic Markup Desk
+            Flight Quotation &amp; Fare Markup Desk
           </h2>
           <p className="mt-1 text-xs text-slate-600">
-            Default markup is PKR {store.defaultFlightMarkupPkr.toLocaleString()} per passenger.
-            Only CEO can override per-passenger markup.
+            Standard agency markup is PKR {store.defaultFlightMarkupPkr.toLocaleString()} per
+            passenger. Only CEO can override per-passenger markup.
           </p>
 
           <form
@@ -807,7 +893,7 @@ export const CoreModulesView: React.FC = () => {
   }
 
   // ---------------------------------------------------------------------------
-  // 7. UMRAH & HAJJ (Published Packages + Multi-Step Offline Draft Customizer)
+  // 7. UMRAH & HAJJ (Published Packages + Multi-Step Draft Customizer + Share to Social)
   // ---------------------------------------------------------------------------
   if (store.activeModule === 'umrah') {
     return (
@@ -902,11 +988,28 @@ export const CoreModulesView: React.FC = () => {
                   {pkg.priceQuadPkr.toLocaleString()}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge
                   variant={pkg.status === 'published' ? 'success' : 'warning'}
                   label={pkg.status}
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    notifyAction(
+                      store.publishSocialPost({
+                        title: `${pkg.title} (${pkg.pkgNo})`,
+                        caption: `${pkg.airline} from ${pkg.departureCity} · ${pkg.makkahHotel} & ${pkg.madinahHotel} · Quad PKR ${pkg.priceQuadPkr.toLocaleString()}`,
+                        platforms: ['whatsapp', 'facebook', 'instagram', 'telegram'],
+                        imageUrl: './assets/images/destinations-grid.jpg',
+                      }),
+                    )
+                  }
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#0A6C74] px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share to Social
+                </button>
                 {(store.currentRole === 'ceo' || store.currentRole === 'manager') && (
                   <button
                     type="button"
@@ -1150,7 +1253,7 @@ export const CoreModulesView: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-[#0A192F]">
-          Immutable Double-Entry Financial Ledger
+          Double-Entry Financial Ledger
         </h2>
         <StatusBadge variant="info" label="Append-Only" />
       </div>

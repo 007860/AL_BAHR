@@ -1,41 +1,93 @@
 import React from 'react';
-import type { BookingRecord } from '../core/models.ts';
+import type { BookingRecord, SocialPlatform } from '../core/models.ts';
+
+export const AlBahrCrestSvg: React.FC<{ className?: string }> = ({ className = 'h-9 w-9' }) => (
+  <svg viewBox="0 0 64 64" fill="none" className={className} aria-hidden="true">
+    <circle cx="32" cy="34" r="22" stroke="#D9AD32" strokeWidth="2.5" fill="#0A192F" />
+    <ellipse cx="32" cy="34" rx="11" ry="21" stroke="#D9AD32" strokeWidth="1.6" strokeOpacity="0.75" />
+    <path d="M11 34H53" stroke="#D9AD32" strokeWidth="1.6" strokeOpacity="0.75" />
+    <path d="M14 25H50" stroke="#D9AD32" strokeWidth="1.3" strokeOpacity="0.55" />
+    <path d="M14 43H50" stroke="#D9AD32" strokeWidth="1.3" strokeOpacity="0.55" />
+    <path
+      d="M12 45C19 54 45 54 52 43"
+      stroke="#FFFFFF"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+    <path
+      d="M42 12L52 10L48 19L44 16L30 25L27 22L42 12Z"
+      fill="#D9AD32"
+    />
+  </svg>
+);
 
 export const BrandWordmark: React.FC<{
   compact?: boolean;
   onDark?: boolean;
-  showAssetPendingBadge?: boolean;
-}> = ({ compact = false, onDark = false, showAssetPendingBadge = true }) => {
+}> = ({ compact = false, onDark = false }) => {
   return (
-    <div className="flex flex-col items-start gap-1.5">
-      <div className="flex items-center gap-2.5">
-        <div
-          className={`flex items-center justify-center rounded-xl border border-[#D9AD32] bg-[#0A192F] font-extrabold text-[#D9AD32] shadow-sm ${
-            compact ? 'h-9 w-9 text-xs' : 'h-11 w-11 text-sm'
-          }`}
-          aria-label="AL-BAHR HORIZON"
-        >
-          AB
-        </div>
-        <div className="flex flex-col leading-tight">
-          <span
-            className={`font-extrabold tracking-wide ${
-              compact ? 'text-sm' : 'text-base'
-            } ${onDark ? 'text-white' : 'text-[#0A192F]'}`}
-          >
-            HORIZON ONE
-          </span>
-          <span className="text-[11px] font-bold tracking-wider text-[#D9AD32]">
-            AL-BAHR HORIZON
-          </span>
-        </div>
+    <div className="flex items-center gap-2.5">
+      <div
+        className={`flex shrink-0 items-center justify-center rounded-xl border border-[#D9AD32] bg-[#0A192F] shadow-xs ${
+          compact ? 'h-9 w-9 p-1' : 'h-11 w-11 p-1.5'
+        }`}
+      >
+        <AlBahrCrestSvg className="h-full w-full" />
       </div>
-      {showAssetPendingBadge && !compact && (
-        <span className="inline-flex items-center rounded-md border border-[#D9AD32]/50 bg-[#D9AD32]/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-[#D9AD32]">
-          OFFICIAL LOGO ASSET PENDING
+      <div className="flex min-w-0 flex-col leading-tight">
+        <span
+          className={`truncate font-extrabold tracking-wide ${
+            compact ? 'text-sm' : 'text-base'
+          } ${onDark ? 'text-white' : 'text-[#0A192F]'}`}
+        >
+          AL-BAHR HORIZON
         </span>
-      )}
+        <span className="truncate text-[10px] font-bold tracking-wider text-[#D9AD32]">
+          TRAVELS &amp; CONSULTANTS
+        </span>
+      </div>
     </div>
+  );
+};
+
+export const SocialPlatformBadge: React.FC<{ platform: SocialPlatform }> = ({ platform }) => {
+  const meta: Record<SocialPlatform, { label: string; cls: string }> = {
+    whatsapp: {
+      label: 'WhatsApp',
+      cls: 'bg-[#E7F8EE] text-[#0E7A3E] border-[#0E7A3E]/25',
+    },
+    facebook: {
+      label: 'Facebook',
+      cls: 'bg-[#EBF3FF] text-[#1877F2] border-[#1877F2]/25',
+    },
+    instagram: {
+      label: 'Instagram',
+      cls: 'bg-[#FDF0F6] text-[#C13584] border-[#C13584]/25',
+    },
+    tiktok: {
+      label: 'TikTok',
+      cls: 'bg-slate-900 text-white border-slate-700',
+    },
+    youtube: {
+      label: 'YouTube',
+      cls: 'bg-[#FEECEC] text-[#CC0000] border-[#CC0000]/25',
+    },
+    linkedin: {
+      label: 'LinkedIn',
+      cls: 'bg-[#E8F4FC] text-[#0A66C2] border-[#0A66C2]/25',
+    },
+    telegram: {
+      label: 'Telegram',
+      cls: 'bg-[#E6F6FD] text-[#0088CC] border-[#0088CC]/25',
+    },
+  };
+  const item = meta[platform];
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold ${item.cls}`}
+    >
+      {item.label}
+    </span>
   );
 };
 
@@ -104,7 +156,7 @@ export const StatusBadge: React.FC<{
   );
 };
 
-export const DeterministicBarcodeSvg: React.FC<{ seed: string }> = ({ seed }) => {
+export const BarcodeSvg: React.FC<{ seed: string }> = ({ seed }) => {
   const bars: Array<{ x: number; w: number }> = [];
   let cursor = 4;
   for (let i = 0; i < 42; i++) {
@@ -122,7 +174,7 @@ export const DeterministicBarcodeSvg: React.FC<{ seed: string }> = ({ seed }) =>
       viewBox="0 0 300 50"
       className="h-12 w-full"
       role="img"
-      aria-label={`Deterministic boarding pass barcode for ${seed}`}
+      aria-label={`Boarding pass barcode for ${seed}`}
     >
       {bars.map((b, idx) => (
         <rect key={idx} x={b.x} y={2} width={b.w} height={46} fill="#0A192F" rx={0.5} />
@@ -152,8 +204,8 @@ export const BoardingPassCard: React.FC<{
       {/* Header row */}
       <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#D9AD32] bg-[#13294B] text-[11px] font-extrabold text-[#D9AD32]">
-            AB
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#D9AD32] bg-[#13294B] p-0.5">
+            <AlBahrCrestSvg className="h-full w-full" />
           </div>
           <span className="truncate text-xs font-bold text-white sm:text-[13px]">
             E-Ticket / Boarding Pass
@@ -215,7 +267,7 @@ export const BoardingPassCard: React.FC<{
           aria-hidden="true"
         />
 
-        <DeterministicBarcodeSvg seed={barcodeSeed} />
+        <BarcodeSvg seed={barcodeSeed} />
 
         {issued ? (
           <button
@@ -235,7 +287,7 @@ export const BoardingPassCard: React.FC<{
           </button>
         ) : (
           <p className="mt-2 text-center text-[11px] font-medium text-slate-500">
-            E-Ticket PDF unlocks automatically once Finance verifies payment &amp; PNR.
+            E-Ticket PDF unlocks once Finance verifies payment &amp; PNR.
           </p>
         )}
       </div>

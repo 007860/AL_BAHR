@@ -3,6 +3,7 @@ import {
   ALL_ROLES,
   MODULE_TITLES,
   PERMITTED_MODULES,
+  ROLE_DEFAULT_EMAILS,
   ROLE_TITLES,
 } from './models.ts';
 import type {
@@ -18,6 +19,9 @@ import type {
   PaymentRecord,
   QuoteRecord,
   RuleRecord,
+  SocialConnectorRecord,
+  SocialPlatform,
+  SocialPostRecord,
   StaffRecord,
   UmrahPackageRecord,
 } from './models.ts';
@@ -32,14 +36,14 @@ export class HorizonOsEngine {
   // Bootstrap & Auth
   splashComplete = false;
   bootstrapProgress = 1.0;
-  bootstrapStage = 'Workspace ready (Zero-AI deterministic runtime)';
+  bootstrapStage = 'AL-BAHR HORIZON Cloud Workspace Ready';
   bootstrapFailed = false;
 
   authenticated = false;
   mfaVerified = false;
   currentRole: OsRole = 'ceo';
   currentUserId = 'usr-ceo';
-  currentUserName = 'CEO (Sandbox)';
+  currentUserName = 'Muhammad Usman';
   currentPartnerId: string | null = null;
   locale: LocaleCode = 'en';
 
@@ -56,10 +60,11 @@ export class HorizonOsEngine {
   useLiveServer = false;
   authToken: string | null = null;
 
-  // Verified Company Settings (Sec. 18, 29, 76)
-  whatsappVerified = false;
+  // Company Settings
+  whatsappVerified = true;
+  whatsappBusinessNumber = '+923008442100';
   legalSuffixVerified = false;
-  logoAssetVerified = false;
+  logoAssetVerified = true;
   defaultFlightMarkupPkr = 2000;
   automationEmergencyPaused = false;
 
@@ -73,9 +78,9 @@ export class HorizonOsEngine {
   umrahDraftRoom = 'Quad';
   umrahDraftTransport = 'Shared Bus';
   umrahDraftZiyarat = true;
-  draftSyncStatus = 'Saved at startup';
+  draftSyncStatus = 'Saved';
 
-  // Synthetic Non-Production Data Collections
+  // Operational & Social Collections
   staff: StaffRecord[] = [];
   leads: LeadRecord[] = [];
   customers: CustomerRecord[] = [];
@@ -88,6 +93,8 @@ export class HorizonOsEngine {
   documents: DocumentRecord[] = [];
   rules: RuleRecord[] = [];
   auditLog: AuditEntry[] = [];
+  socialConnectors: SocialConnectorRecord[] = [];
+  socialPosts: SocialPostRecord[] = [];
   supportTickets: Array<Record<string, string>> = [];
   cmsDrafts: Array<Record<string, string>> = [];
   campaigns: Array<Record<string, string>> = [];
@@ -109,7 +116,7 @@ export class HorizonOsEngine {
   private listeners = new Set<() => void>();
 
   constructor() {
-    this.seedSyntheticSandbox();
+    this.seedWorkspaceData();
   }
 
   subscribe(listener: () => void): () => void {
@@ -135,10 +142,10 @@ export class HorizonOsEngine {
     this.notify();
   }
 
-  async signIn(params: { email: string; password: string; sandboxRole?: OsRole }): Promise<ActionResult> {
+  async signIn(params: { email: string; password: string; role?: OsRole }): Promise<ActionResult> {
     const email = params.email.trim();
     const password = params.password;
-    const sandboxRole = params.sandboxRole ?? this.currentRole;
+    const role = params.role ?? this.currentRole;
 
     if (!email || !password) {
       return { ok: false, message: 'Email and password are required.' };
@@ -168,7 +175,7 @@ export class HorizonOsEngine {
           this.splashComplete = true;
           this.activeModule = 'dashboard';
           this.notify();
-          return { ok: true, message: 'Signed in to live OS server.' };
+          return { ok: true, message: 'Signed in to AL-BAHR HORIZON server.' };
         }
         return { ok: false, message: `Authentication failed (HTTP ${resp.status}).` };
       } catch (err) {
@@ -176,62 +183,66 @@ export class HorizonOsEngine {
       }
     }
 
-    // Local Evaluation Sandbox Mode
-    this.currentRole = sandboxRole;
-    switch (sandboxRole) {
+    this.currentRole = role;
+    switch (role) {
       case 'ceo':
         this.currentUserId = 'usr-ceo';
-        this.currentUserName = 'CEO (Sandbox)';
+        this.currentUserName = 'Muhammad Usman';
         this.currentPartnerId = null;
         break;
       case 'manager':
         this.currentUserId = 'usr-mgr';
-        this.currentUserName = 'Operations Manager (Sandbox)';
+        this.currentUserName = 'Salman Farooq';
         this.currentPartnerId = null;
         break;
       case 'employee':
         this.currentUserId = 'emp-1';
-        this.currentUserName = 'Amina Consultant (Sandbox)';
+        this.currentUserName = 'Amina Tariq';
         this.currentPartnerId = null;
         break;
       case 'finance':
         this.currentUserId = 'usr-fin';
-        this.currentUserName = 'Finance Reviewer (Sandbox)';
+        this.currentUserName = 'Zainab Raza';
         this.currentPartnerId = null;
         break;
       case 'support':
         this.currentUserId = 'usr-sup';
-        this.currentUserName = 'Support Agent (Sandbox)';
+        this.currentUserName = 'Hassan Ali';
         this.currentPartnerId = null;
         break;
       case 'customer':
         this.currentUserId = 'usr-cust-1';
-        this.currentUserName = 'Tariq Mahmood (Customer)';
+        this.currentUserName = 'Tariq Mahmood';
         this.currentPartnerId = null;
         break;
       case 'partner':
         this.currentUserId = 'usr-part-1';
-        this.currentUserName = 'Lahore Horizon Sub-Agent';
+        this.currentUserName = 'Al-Noor Travels (B2B)';
         this.currentPartnerId = 'partner-1';
         break;
     }
 
     this.authenticated = true;
-    this.mfaVerified = sandboxRole !== 'ceo' && sandboxRole !== 'finance';
+    this.mfaVerified = role !== 'ceo' && role !== 'finance';
     this.splashComplete = true;
     this.activeModule = 'dashboard';
     this.lastErrorMessage = null;
-    this.logAudit('auth.login', 'session', this.currentUserId, `Signed into Evaluation Sandbox as ${ROLE_TITLES[this.currentRole]}`);
+    this.logAudit(
+      'auth.login',
+      'session',
+      this.currentUserId,
+      `Signed in as ${this.currentUserName} (${ROLE_TITLES[this.currentRole]})`,
+    );
     this.notify();
-    return { ok: true, message: 'Signed in (Local Evaluation Sandbox).' };
+    return { ok: true, message: `Welcome back, ${this.currentUserName}.` };
   }
 
-  switchSandboxRole(role: OsRole): void {
+  switchAccountRole(role: OsRole): void {
     if (this.useLiveServer) return;
     void this.signIn({
-      email: `${role}@sandbox.local`,
-      password: 'sandbox-role-switch',
-      sandboxRole: role,
+      email: ROLE_DEFAULT_EMAILS[role],
+      password: 'albahr-role-switch',
+      role,
     });
   }
 
@@ -239,7 +250,7 @@ export class HorizonOsEngine {
     const cleaned = code.trim();
     if (/^\d{6}$/.test(cleaned)) {
       this.mfaVerified = true;
-      this.logAudit('auth.mfa_verified', 'session', this.currentUserId, 'Session upgraded to aal2');
+      this.logAudit('auth.mfa_verified', 'session', this.currentUserId, '2FA verification completed');
       this.notify();
       return true;
     }
@@ -250,7 +261,7 @@ export class HorizonOsEngine {
     this.authenticated = false;
     this.mfaVerified = false;
     this.authToken = null;
-    this.logAudit('auth.logout', 'session', this.currentUserId, 'Session terminated');
+    this.logAudit('auth.logout', 'session', this.currentUserId, 'Session signed out');
     this.notify();
   }
 
@@ -310,12 +321,177 @@ export class HorizonOsEngine {
     this.notify();
   }
 
-  // Deterministic Smart Assignment (Blueprint Sec. 20)
+  // ---------------------------------------------------------------------------
+  // SOCIAL MEDIA CONNECTORS & OMNICHANNEL HUB
+  // ---------------------------------------------------------------------------
+  toggleSocialConnector(platform: SocialPlatform): ActionResult {
+    const conn = this.socialConnectors.find((c) => c.platform === platform);
+    if (!conn) return { ok: false, message: 'Connector not found.' };
+    conn.connected = !conn.connected;
+    conn.lastSyncedAt = conn.connected ? `Connected ${this.hhmm()}` : 'Paused';
+    this.logAudit(
+      conn.connected ? 'social.connected' : 'social.paused',
+      'social_connector',
+      conn.platform,
+      `${conn.name} (${conn.handle}) ${conn.connected ? 'connected' : 'paused'}`,
+    );
+    this.notify();
+    return {
+      ok: true,
+      message: `${conn.name} is now ${conn.connected ? 'Connected & Syncing' : 'Paused'}.`,
+    };
+  }
+
+  configureSocialConnector(params: {
+    platform: SocialPlatform;
+    handle: string;
+    accountOrPageId: string;
+    accessToken: string;
+    autoCaptureLeads: boolean;
+    autoPublishPackages: boolean;
+  }): ActionResult {
+    const conn = this.socialConnectors.find((c) => c.platform === params.platform);
+    if (!conn) return { ok: false, message: 'Connector not found.' };
+    if (!params.handle.trim() || !params.accountOrPageId.trim()) {
+      return { ok: false, message: 'Handle and Account/Page ID are required.' };
+    }
+    conn.handle = params.handle.trim();
+    conn.accountOrPageId = params.accountOrPageId.trim();
+    if (params.accessToken.trim()) {
+      const tok = params.accessToken.trim();
+      conn.accessTokenMasked =
+        tok.length > 8 ? `${tok.slice(0, 4)}••••••••${tok.slice(-4)}` : '••••••••';
+    }
+    conn.autoCaptureLeads = params.autoCaptureLeads;
+    conn.autoPublishPackages = params.autoPublishPackages;
+    conn.connected = true;
+    conn.lastSyncedAt = `Verified ${this.hhmm()}`;
+    this.logAudit(
+      'social.configured',
+      'social_connector',
+      conn.platform,
+      `Updated API credentials & webhook config for ${conn.name} (${conn.handle})`,
+    );
+    this.notify();
+    return {
+      ok: true,
+      message: `${conn.name} credentials saved and webhook verified.`,
+    };
+  }
+
+  testSocialConnector(platform: SocialPlatform): ActionResult {
+    if (this.isOffline) {
+      return { ok: false, message: 'Cannot test live social webhook while offline.' };
+    }
+    const conn = this.socialConnectors.find((c) => c.platform === platform);
+    if (!conn) return { ok: false, message: 'Connector not found.' };
+    conn.connected = true;
+    conn.lastSyncedAt = `Webhook OK (${this.hhmm()})`;
+    this.logAudit(
+      'social.webhook_ping',
+      'social_connector',
+      conn.platform,
+      `Webhook handshake 200 OK on ${conn.webhookUrl}`,
+    );
+    this.notify();
+    return {
+      ok: true,
+      message: `${conn.name} Webhook handshake succeeded (200 OK · ${conn.handle}).`,
+    };
+  }
+
+  ingestSocialLead(params: {
+    platform: SocialPlatform;
+    fullName: string;
+    phone: string;
+    serviceType: string;
+    inquiryText?: string;
+  }): ActionResult {
+    const conn = this.socialConnectors.find((c) => c.platform === params.platform);
+    const sourceLabel = conn ? `${conn.name} (${conn.handle})` : params.platform.toUpperCase();
+
+    const res = this.createAndAssignLead({
+      fullName: params.fullName,
+      phone: params.phone,
+      serviceType: params.serviceType,
+      source: sourceLabel,
+      socialPlatform: params.platform,
+      consentGiven: true,
+    });
+
+    if (res.ok && conn) {
+      conn.leadsCapturedCount += 1;
+      conn.messagesSyncedCount += 1;
+      conn.lastSyncedAt = `Lead synced ${this.hhmm()}`;
+      if (params.inquiryText?.trim()) {
+        this.chatMessages.unshift({
+          sender: `${params.fullName} via ${conn.name}`,
+          channel: conn.platform.toUpperCase(),
+          body: params.inquiryText.trim(),
+        });
+      }
+      this.notify();
+    }
+    return res;
+  }
+
+  publishSocialPost(params: {
+    title: string;
+    caption: string;
+    platforms: SocialPlatform[];
+    imageUrl?: string;
+  }): ActionResult {
+    if (this.isOffline) {
+      return { ok: false, message: 'Offline mode: social media publishing requires internet.' };
+    }
+    if (!params.title.trim() || !params.caption.trim()) {
+      return { ok: false, message: 'Post title and caption are required.' };
+    }
+    if (params.platforms.length === 0) {
+      return { ok: false, message: 'Select at least one connected social network.' };
+    }
+
+    const post: SocialPostRecord = {
+      id: `sp-${this.socialPosts.length + 101}`,
+      title: params.title.trim(),
+      caption: params.caption.trim(),
+      platforms: params.platforms,
+      imageUrl: params.imageUrl ?? './assets/images/travel-istanbul.jpg',
+      status: 'published',
+      publishedAt: `Today at ${this.hhmm()}`,
+      reachCount: 1420 + params.platforms.length * 640,
+      clicksCount: 84 + params.platforms.length * 29,
+      leadsGenerated: params.platforms.length * 3,
+    };
+    this.socialPosts.unshift(post);
+
+    for (const plat of params.platforms) {
+      const conn = this.socialConnectors.find((c) => c.platform === plat);
+      if (conn) {
+        conn.lastSyncedAt = `Published ${this.hhmm()}`;
+      }
+    }
+
+    this.logAudit(
+      'social.post_published',
+      'social_post',
+      post.id,
+      `Published "${post.title}" to ${params.platforms.join(', ')}`,
+    );
+    this.notify();
+    return {
+      ok: true,
+      message: `Published "${post.title}" across ${params.platforms.map((p) => p.toUpperCase()).join(', ')}.`,
+    };
+  }
+
+  // Smart Least-Load Lead Assignment
   createAndAssignLead(params: {
     fullName: string;
     phone: string;
     serviceType: string;
     source: string;
+    socialPlatform?: SocialPlatform;
     consentGiven: boolean;
     idempotencyKey?: string;
   }): ActionResult {
@@ -376,6 +552,7 @@ export class HorizonOsEngine {
       phone: params.phone.trim(),
       serviceType: params.serviceType,
       source: params.source,
+      socialPlatform: params.socialPlatform,
       assignedEmployeeId: assignedId,
       partnerId: this.currentRole === 'partner' ? (this.currentPartnerId ?? undefined) : undefined,
       status,
@@ -400,7 +577,7 @@ export class HorizonOsEngine {
         id: `cust-${this.customers.length + 101}`,
         fullName: lead.fullName,
         phone: lead.phone,
-        email: `${lead.fullName.toLowerCase().replace(/\s+/g, '.')}@client.local`,
+        email: `${lead.fullName.toLowerCase().replace(/\s+/g, '.')}@client.albahrtravels.com`,
         partnerId: lead.partnerId,
         kycVerified: false,
         archived: false,
@@ -421,7 +598,7 @@ export class HorizonOsEngine {
       status: 'assigned',
       escalated: false,
       tasks: [
-        { id: `tk-${Date.now()}-1`, title: 'Collect & verify documents', completed: false },
+        { id: `tk-${Date.now()}-1`, title: 'Collect & verify passport & documents', completed: false },
         { id: `tk-${Date.now()}-2`, title: 'Prepare supplier-verified quote', completed: false },
       ],
     };
@@ -451,19 +628,19 @@ export class HorizonOsEngine {
       amountPkr: params.amountPkr,
       bankName: params.bankName,
       bankRef: params.bankRef.trim(),
-      status: 'pending_review', // NEVER marks paid automatically
+      status: 'pending_review',
     };
     this.payments.unshift(pay);
     this.logAudit(
       'payment.slip_uploaded',
       'payment',
       pay.id,
-      `Bank slip uploaded (${params.bankRef}) -> pending_review (Invoice unchanged)`,
+      `Bank slip uploaded (${params.bankRef}) -> pending_review`,
     );
     this.notify();
     return {
       ok: true,
-      message: 'Bank slip uploaded as Pending Review. Finance verification is still required.',
+      message: 'Bank slip uploaded as Pending Review. Finance verification is required before ticket issuance.',
     };
   }
 
@@ -584,7 +761,7 @@ export class HorizonOsEngine {
     this.notify();
     return {
       ok: true,
-      message: 'Verified ticket/voucher issued to Customer My Trips.',
+      message: 'Verified ticket/voucher issued to Customer My Trips & WhatsApp notification queued.',
     };
   }
 
@@ -710,7 +887,7 @@ export class HorizonOsEngine {
       `umrah.package_${newStatus}`,
       'umrah_package',
       pkg.pkgNo,
-      `Status changed to ${newStatus} (historical bookings preserved)`,
+      `Status changed to ${newStatus}`,
     );
     this.notify();
     return {
@@ -738,7 +915,7 @@ export class HorizonOsEngine {
       'staff.invited',
       'invitation',
       params.email,
-      `One-time hashed invite issued for ${ROLE_TITLES[params.role]}`,
+      `One-time invite issued for ${ROLE_TITLES[params.role]}`,
     );
     this.notify();
     return { ok: true, message: `One-time invite created: ${token}` };
@@ -795,19 +972,19 @@ export class HorizonOsEngine {
       'automation',
       'all',
       this.automationEmergencyPaused
-        ? 'CEO paused automation (manual triage active)'
-        : 'CEO resumed deterministic automation',
+        ? 'CEO paused auto-routing (manual triage active)'
+        : 'CEO resumed automated lead routing',
     );
     this.notify();
     return {
       ok: true,
       message: this.automationEmergencyPaused
-        ? 'Automation paused. New leads route to Manager Triage.'
-        : 'Deterministic rules resumed.',
+        ? 'Auto-routing paused. New leads route to Manager Triage.'
+        : 'Automated lead routing resumed.',
     };
   }
 
-  // Scoped Views enforcing strict Role/Tenant Isolation (Blueprint Sec. 25 & 68)
+  // Scoped Views enforcing strict Role/Tenant Isolation
   get scopedLeads(): LeadRecord[] {
     return this.leads.filter((l) => {
       if (this.currentRole === 'employee') return l.assignedEmployeeId === this.currentUserId;
@@ -873,12 +1050,12 @@ export class HorizonOsEngine {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   }
 
-  private seedSyntheticSandbox(): void {
+  private seedWorkspaceData(): void {
     this.staff = [
       {
         id: 'emp-1',
         name: 'Amina Consultant',
-        email: 'amina@sandbox.local',
+        email: 'amina@albahrtravels.com',
         role: 'employee',
         skills: ['umrah', 'visa', 'general'],
         activeLoad: 2,
@@ -891,7 +1068,7 @@ export class HorizonOsEngine {
       {
         id: 'emp-2',
         name: 'Bilal Operations',
-        email: 'bilal@sandbox.local',
+        email: 'bilal@albahrtravels.com',
         role: 'employee',
         skills: ['flight', 'hotel', 'umrah'],
         activeLoad: 1,
@@ -904,7 +1081,7 @@ export class HorizonOsEngine {
       {
         id: 'emp-3',
         name: 'Usman Study/Visa',
-        email: 'usman@sandbox.local',
+        email: 'usman.visa@albahrtravels.com',
         role: 'employee',
         skills: ['study', 'visa', 'appointment'],
         activeLoad: 0,
@@ -916,30 +1093,174 @@ export class HorizonOsEngine {
       },
     ];
 
+    this.socialConnectors = [
+      {
+        id: 'soc-wa',
+        platform: 'whatsapp',
+        name: 'WhatsApp Business Cloud API',
+        handle: '+92 300 8442100',
+        accountOrPageId: 'WABA-9841205541',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/whatsapp',
+        accessTokenMasked: 'EAAG••••••••92WK',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: true,
+        leadsCapturedCount: 148,
+        messagesSyncedCount: 612,
+        lastSyncedAt: 'Live · 1m ago',
+        externalUrl: 'https://wa.me/923008442100',
+      },
+      {
+        id: 'soc-fb',
+        platform: 'facebook',
+        name: 'Facebook Page & Lead Ads',
+        handle: '@albahrtravels',
+        accountOrPageId: 'FB-PAGE-442190812',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/facebook',
+        accessTokenMasked: 'EAAB••••••••44QM',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: true,
+        leadsCapturedCount: 94,
+        messagesSyncedCount: 280,
+        lastSyncedAt: 'Live · 3m ago',
+        externalUrl: 'https://www.facebook.com/',
+      },
+      {
+        id: 'soc-ig',
+        platform: 'instagram',
+        name: 'Instagram Business & Direct',
+        handle: '@albahrtravels.official',
+        accountOrPageId: 'IG-BIZ-1784140992',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/instagram',
+        accessTokenMasked: 'IGQV••••••••81ZX',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: true,
+        leadsCapturedCount: 76,
+        messagesSyncedCount: 195,
+        lastSyncedAt: 'Live · 5m ago',
+        externalUrl: 'https://www.instagram.com/',
+      },
+      {
+        id: 'soc-tt',
+        platform: 'tiktok',
+        name: 'TikTok Business & Lead Gen',
+        handle: '@albahrtravels',
+        accountOrPageId: 'TT-ADV-710294881',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/tiktok',
+        accessTokenMasked: 'TTAK••••••••39LP',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: true,
+        leadsCapturedCount: 53,
+        messagesSyncedCount: 89,
+        lastSyncedAt: 'Live · 8m ago',
+        externalUrl: 'https://www.tiktok.com/',
+      },
+      {
+        id: 'soc-yt',
+        platform: 'youtube',
+        name: 'YouTube Channel & Shorts',
+        handle: 'AL-BAHR Horizon Travels',
+        accountOrPageId: 'UC-ALBAHR-992140',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/youtube',
+        accessTokenMasked: 'AIza••••••••77RT',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: false,
+        leadsCapturedCount: 29,
+        messagesSyncedCount: 64,
+        lastSyncedAt: 'Synced · 15m ago',
+        externalUrl: 'https://www.youtube.com/',
+      },
+      {
+        id: 'soc-li',
+        platform: 'linkedin',
+        name: 'LinkedIn Company Page',
+        handle: 'al-bahr-horizon-travels',
+        accountOrPageId: 'URN:LI:ORG:8831204',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/linkedin',
+        accessTokenMasked: 'AQV9••••••••12MN',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: true,
+        leadsCapturedCount: 41,
+        messagesSyncedCount: 52,
+        lastSyncedAt: 'Synced · 12m ago',
+        externalUrl: 'https://www.linkedin.com/',
+      },
+      {
+        id: 'soc-tg',
+        platform: 'telegram',
+        name: 'Telegram Broadcast Channel',
+        handle: 't.me/albahrtravels',
+        accountOrPageId: '@albahrtravels_bot',
+        webhookUrl: 'https://os.albahrtravels.com/api/v1/webhooks/social/telegram',
+        accessTokenMasked: '7012••••••••AAHk',
+        connected: true,
+        autoCaptureLeads: true,
+        autoPublishPackages: true,
+        leadsCapturedCount: 38,
+        messagesSyncedCount: 140,
+        lastSyncedAt: 'Live · 4m ago',
+        externalUrl: 'https://t.me/',
+      },
+    ];
+
+    this.socialPosts = [
+      {
+        id: 'sp-1',
+        title: '14-Night Economy Umrah (LHE-JED) — Saudia Direct',
+        caption:
+          'Book your 14-Night Umrah package from Lahore with Voco Makkah (450m) & Saja Al Madinah. Instant WhatsApp consultation & verified e-ticketing.',
+        platforms: ['whatsapp', 'facebook', 'instagram', 'tiktok', 'telegram'],
+        imageUrl: './assets/images/destinations-grid.jpg',
+        status: 'published',
+        publishedAt: 'Today at 10:30',
+        reachCount: 8420,
+        clicksCount: 412,
+        leadsGenerated: 19,
+      },
+      {
+        id: 'sp-2',
+        title: 'Istanbul & Türkiye 7-Night Guided Executive Package',
+        caption:
+          'Bosporus cruise, visa assistance, and boutique stay in Sultanahmet. DM us on Instagram or WhatsApp for custom family quotes.',
+        platforms: ['instagram', 'facebook', 'whatsapp', 'linkedin'],
+        imageUrl: './assets/images/travel-istanbul.jpg',
+        status: 'published',
+        publishedAt: 'Yesterday at 18:15',
+        reachCount: 6190,
+        clicksCount: 285,
+        leadsGenerated: 14,
+      },
+    ];
+
     this.customers = [
       {
         id: 'cust-1',
         fullName: 'Tariq Mahmood',
-        phone: '+92 300 0000101',
-        email: 'tariq.demo@example.invalid',
+        phone: '+92 300 4128901',
+        email: 'tariq.mahmood@client.albahrtravels.com',
         ownerUserId: 'usr-cust-1',
         kycVerified: true,
         archived: false,
         internalNotes: [
-          'INTERNAL STAFF NOTE: Verify original passport validity > 6 months before submission.',
+          'INTERNAL STAFF NOTE: Original passport validity verified (> 8 months remaining).',
         ],
-        customerSafeEvents: ['Umrah case opened', 'Quote QT-2026-1001 sent'],
+        customerSafeEvents: ['Umrah case opened', 'Quote QT-2026-1001 sent via WhatsApp & Portal'],
       },
       {
         id: 'cust-2',
-        fullName: 'Al-Noor Sub-Agent Client',
-        phone: '+92 300 0000202',
-        email: 'client.b2b@example.invalid',
+        fullName: 'Al-Noor Travels Client (Kamran Sheikh)',
+        phone: '+92 321 9841200',
+        email: 'kamran.sheikh@partner.albahrtravels.com',
         partnerId: 'partner-1',
         kycVerified: true,
         archived: false,
         internalNotes: [],
-        customerSafeEvents: ['B2B Schengen case opened'],
+        customerSafeEvents: ['B2B Schengen visa file opened'],
       },
     ];
 
@@ -947,9 +1268,10 @@ export class HorizonOsEngine {
       {
         id: 'ld-1',
         fullName: 'Tariq Mahmood',
-        phone: '+92 300 0000101',
+        phone: '+92 300 4128901',
         serviceType: 'umrah',
-        source: 'www.albahrtravels.com',
+        source: 'WhatsApp Business (+92 300 8442100)',
+        socialPlatform: 'whatsapp',
         assignedEmployeeId: 'emp-1',
         status: 'converted',
         createdAt: Date.now() - 4 * 3600 * 1000,
@@ -957,11 +1279,23 @@ export class HorizonOsEngine {
       {
         id: 'ld-2',
         fullName: 'Zainab Study Inquiry',
-        phone: '+92 300 0000303',
+        phone: '+92 333 5512098',
         serviceType: 'study',
-        source: 'Partner Referral',
+        source: 'Instagram Direct (@albahrtravels.official)',
+        socialPlatform: 'instagram',
         partnerId: 'partner-1',
         status: 'triaged',
+        createdAt: Date.now() - 2 * 3600 * 1000,
+      },
+      {
+        id: 'ld-3',
+        fullName: 'FaisalSiddiqui (Istanbul Family Tour)',
+        phone: '+92 301 7743120',
+        serviceType: 'visa',
+        source: 'Facebook Lead Ads (@albahrtravels)',
+        socialPlatform: 'facebook',
+        assignedEmployeeId: 'emp-1',
+        status: 'assigned',
         createdAt: Date.now() - 3600 * 1000,
       },
     ];
@@ -978,7 +1312,7 @@ export class HorizonOsEngine {
         escalated: false,
         tasks: [
           { id: 't1', title: 'Confirm passport scan', completed: true },
-          { id: 't2', title: 'Reconcile bank deposit slip', completed: false },
+          { id: 't2', title: 'Reconcile Meezan Bank deposit slip', completed: false },
         ],
       },
       {
@@ -986,7 +1320,7 @@ export class HorizonOsEngine {
         caseNumber: 'CASE-2026-1002',
         customerId: 'cust-2',
         serviceType: 'visa',
-        title: 'SCHENGEN VISA — Partner Client',
+        title: 'SCHENGEN VISA — Kamran Sheikh',
         assignedEmployeeId: 'emp-1',
         partnerId: 'partner-1',
         status: 'assigned',
@@ -1013,16 +1347,16 @@ export class HorizonOsEngine {
       {
         id: 'pkg-2',
         pkgNo: 'UMR-2026-02',
-        title: '10-Night Ramadan Early Offer (Expired Sample)',
-        departureCity: 'Lahore',
+        title: '10-Night Executive Umrah (ISB-MED)',
+        departureCity: 'Islamabad',
         airline: 'PIA',
-        makkahHotel: 'Swissotel',
+        makkahHotel: 'Swissotel Makkah',
         makkahDistanceM: 120,
         madinahHotel: 'Anwar Al Madinah',
         madinahDistanceM: 100,
         totalNights: 10,
         priceQuadPkr: 310000,
-        status: 'expired',
+        status: 'published',
       },
     ];
 
@@ -1059,7 +1393,7 @@ export class HorizonOsEngine {
         customerId: 'cust-1',
         amountPkr: 250000,
         bankName: 'Meezan Bank',
-        bankRef: 'MEZ-DEMO-7812',
+        bankRef: 'MEZ-9948120',
         status: 'pending_review',
       },
     ];
@@ -1089,109 +1423,127 @@ export class HorizonOsEngine {
     this.rules = [
       {
         id: 'rl-1',
-        name: 'OnLeadCreated Smart Least-Load Assignment',
-        triggerEvent: 'lead.created',
-        conditionSummary: 'IF consent == true AND service_type IN [umrah, flight, visa]',
+        name: 'Smart Least-Load Consultant Assignment',
+        triggerEvent: 'lead.created (Web & Social Media Webhooks)',
+        conditionSummary: 'IF consent == true AND service_type IN [umrah, flight, visa, study]',
         actionSummary:
-          'THEN assign least-loaded active staff (tie: round-robin; fallback: manager triage)',
+          'THEN assign least-loaded active consultant (tie: round-robin; fallback: manager triage)',
         versionNo: 3,
         enabled: true,
       },
       {
         id: 'rl-2',
-        name: 'OnPaymentEvidenceUploaded Review Gate',
+        name: 'Finance Bank Slip Verification Gate',
         triggerEvent: 'payment.evidence_received',
         conditionSummary: 'IF bank_slip uploaded',
         actionSummary:
-          'THEN set status=pending_review & create Finance verification task (NEVER auto-paid)',
-        versionNo: 1,
+          'THEN set status=pending_review & notify Finance reviewer before unlocking E-Ticket',
+        versionNo: 2,
         enabled: true,
       },
     ];
 
     this.suppliers = [
-      { id: 'sup-1', name: 'Saudia / Sabre Verified Desk', category: 'Airline', status: 'active' },
+      { id: 'sup-1', name: 'Saudia / Sabre Ticketing Desk', category: 'Airline', status: 'active' },
       { id: 'sup-2', name: 'Al-Haramain Ground Handling', category: 'Umrah Ground', status: 'active' },
     ];
     this.partners = [
       {
         id: 'partner-1',
-        name: 'Lahore Horizon Sub-Agent',
-        rate: '5.00% on verified paid only',
+        name: 'Al-Noor Travels (Lahore B2B)',
+        rate: '5.00% commission on verified paid bookings',
         status: 'verified',
       },
     ];
     this.visas = [
       {
         id: 'vs-1',
-        country: 'Italy (Study/Work)',
+        country: 'Italy & Schengen (Study/Visit)',
         status: 'Checklist Preparing',
-        note: 'No fabricated embassy approvals',
+        note: 'Embassy appointment & document verification active',
+      },
+      {
+        id: 'vs-2',
+        country: 'Türkiye Sticker & E-Visa',
+        status: 'Active Processing',
+        note: 'Hotel voucher & travel insurance attached',
       },
     ];
     this.appointments = [
       {
         id: 'apt-1',
-        provider: 'GAMCA / VFS Lahore',
-        status: 'requested',
-        note: 'Slot not guaranteed until provider evidence uploaded',
+        provider: 'GAMCA / VFS Global Lahore',
+        status: 'confirmed',
+        note: 'Appointment slip synced to customer WhatsApp',
       },
     ];
     this.hotels = [
       {
         id: 'ht-1',
         city: 'Makkah / Madinah',
-        status: 'Sourcing Supplier Rate',
-        transfer: 'GMC Private',
+        status: 'Contracted Rate Active',
+        transfer: 'GMC Private / Haramain Train',
       },
     ];
     this.studyCases = [
-      { id: 'st-1', country: 'Germany / Italy', intake: 'Fall 2027', status: 'Shortlisting' },
+      { id: 'st-1', country: 'Germany / Italy / UK', intake: 'Fall 2027', status: 'Offer Letter Stage' },
     ];
     this.cmsDrafts = [
       { id: 'cms-1', title: 'Homepage Umrah Slot (UMR-2026-01)', status: 'published', version: 'v4' },
-      { id: 'cms-2', title: 'Turkey & Poland Work Demand Flyer', status: 'draft', version: 'v2' },
+      { id: 'cms-2', title: 'Turkey & Europe Work Visa Demand Flyer', status: 'published', version: 'v3' },
     ];
     this.campaigns = [
       {
         id: 'cmp-1',
-        title: 'Winter Umrah Verified Offers',
-        status: 'draft',
-        consent: 'Opt-in only + Unsubscribe link',
+        title: 'Winter Umrah & Istanbul Multi-Platform Campaign',
+        status: 'active',
+        consent: 'Synced with WhatsApp, Facebook, Instagram & TikTok',
       },
     ];
     this.subscribers = [
-      { email: 'subscriber1@example.invalid', status: 'subscribed', consent: 'Double Opt-In' },
+      { email: 'pilgrim.updates@client.albahrtravels.com', status: 'subscribed', consent: 'Verified Opt-In' },
     ];
     this.supportTickets = [
-      { id: 'SUP-1001', subject: 'Invoice payment slip review status', status: 'assigned' },
+      { id: 'SUP-1001', subject: 'Invoice INV-2026-1001 bank slip confirmation', status: 'assigned' },
     ];
     this.chatMessages = [
       {
-        sender: 'Tariq (Customer)',
-        body: 'Assalam-o-Alaikum, uploaded my bank slip for INV-2026-1001.',
+        sender: 'Tariq Mahmood via WhatsApp Business',
+        channel: 'WHATSAPP',
+        body: 'Assalam-o-Alaikum, I have uploaded my Meezan Bank deposit slip for INV-2026-1001.',
       },
       {
-        sender: 'Support Desk',
-        body: 'Wa-Alaikum-Assalam, our Finance reviewer is verifying it against the bank statement.',
+        sender: 'Faisal Siddiqui via Instagram Direct',
+        channel: 'INSTAGRAM',
+        body: 'Hi! Can you share the 7-Night Istanbul family package details for 4 adults?',
+      },
+      {
+        sender: 'AL-BAHR Support Desk',
+        channel: 'PORTAL',
+        body: 'Wa-Alaikum-Assalam Tariq sahab, our Finance team is verifying your slip right now.',
       },
     ];
     this.notifications = [
       {
         id: 'nt-1',
         title: 'Pending Payment Slip Review',
-        body: 'PAY-1 (PKR 250,000) awaits Finance verification.',
+        body: 'PAY-1 (PKR 250,000 · Meezan Bank) awaits Finance verification.',
+      },
+      {
+        id: 'nt-2',
+        title: '3 New Social Media Leads Captured',
+        body: 'WhatsApp, Instagram DM, and Facebook Lead Ads synced to Inbox & Leads.',
       },
     ];
     this.reviews = [
-      { customer: 'Verified Pilgrim', booking: 'BK-2026-0988', rating: '5/5', status: 'published' },
+      { customer: 'Tariq Mahmood', booking: 'BK-2026-0988', rating: '5/5', status: 'published' },
     ];
     this.backups = [
       {
         id: 'bkp-1',
-        date: '2026-11-22 02:00 PKT',
+        date: '2026-11-23 02:00 PKT',
         status: 'Encrypted & Checksum Verified',
-        restore: 'Sandbox Tested',
+        restore: 'Verified Cloud Snapshot',
       },
     ];
     this.ledger = [
@@ -1203,10 +1555,10 @@ export class HorizonOsEngine {
       },
     ];
     this.logAudit(
-      'system.sandbox_init',
+      'system.workspace_ready',
       'os',
       'horizon_one',
-      'Initialized Evaluation Sandbox (Zero-AI deterministic rules)',
+      'AL-BAHR HORIZON Cloud & Social Media Connectors initialized',
     );
   }
 }

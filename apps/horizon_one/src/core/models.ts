@@ -3,17 +3,67 @@ export type OsRole = 'ceo' | 'manager' | 'employee' | 'finance' | 'support' | 'c
 export const ALL_ROLES: OsRole[] = ['ceo', 'manager', 'employee', 'finance', 'support', 'customer', 'partner'];
 
 export const ROLE_TITLES: Record<OsRole, string> = {
-  ceo: 'CEO / Owner',
+  ceo: 'CEO & Founder',
   manager: 'Operations Manager',
   employee: 'Travel Consultant',
-  finance: 'Finance Reviewer',
+  finance: 'Finance & Accounts',
   support: 'Support Desk',
-  customer: 'Customer',
-  partner: 'B2B Partner',
+  customer: 'Traveler / Client',
+  partner: 'B2B Partner Agency',
 };
+
+export const ROLE_DEFAULT_EMAILS: Record<OsRole, string> = {
+  ceo: 'ceo@albahrtravels.com',
+  manager: 'manager@albahrtravels.com',
+  employee: 'amina@albahrtravels.com',
+  finance: 'finance@albahrtravels.com',
+  support: 'support@albahrtravels.com',
+  customer: 'tariq.mahmood@client.albahrtravels.com',
+  partner: 'alnoor.b2b@partner.albahrtravels.com',
+};
+
+export type SocialPlatform =
+  | 'whatsapp'
+  | 'facebook'
+  | 'instagram'
+  | 'tiktok'
+  | 'youtube'
+  | 'linkedin'
+  | 'telegram';
+
+export interface SocialConnectorRecord {
+  id: string;
+  platform: SocialPlatform;
+  name: string;
+  handle: string;
+  accountOrPageId: string;
+  webhookUrl: string;
+  accessTokenMasked: string;
+  connected: boolean;
+  autoCaptureLeads: boolean;
+  autoPublishPackages: boolean;
+  leadsCapturedCount: number;
+  messagesSyncedCount: number;
+  lastSyncedAt: string;
+  externalUrl: string;
+}
+
+export interface SocialPostRecord {
+  id: string;
+  title: string;
+  caption: string;
+  platforms: SocialPlatform[];
+  imageUrl: string;
+  status: 'published' | 'scheduled';
+  publishedAt: string;
+  reachCount: number;
+  clicksCount: number;
+  leadsGenerated: number;
+}
 
 export type AppNavModule =
   | 'dashboard'
+  | 'socialMedia'
   | 'inbox'
   | 'customers'
   | 'cases'
@@ -55,6 +105,7 @@ export type AppNavModule =
 
 export const ALL_MODULES: AppNavModule[] = [
   'dashboard',
+  'socialMedia',
   'inbox',
   'customers',
   'cases',
@@ -97,6 +148,7 @@ export const ALL_MODULES: AppNavModule[] = [
 
 export const MODULE_TITLES: Record<AppNavModule, string> = {
   dashboard: 'Dashboard',
+  socialMedia: 'Social Media Connectors',
   inbox: 'Inbox & Leads',
   customers: 'Customers',
   cases: 'Cases & Tasks',
@@ -119,7 +171,7 @@ export const MODULE_TITLES: Record<AppNavModule, string> = {
   websiteCms: 'Website CMS',
   campaigns: 'Campaigns',
   subscribers: 'Subscribers',
-  chat: 'Chat',
+  chat: 'Omnichannel Chat',
   support: 'Support Desk',
   notifications: 'Notifications',
   seo: 'SEO',
@@ -130,10 +182,10 @@ export const MODULE_TITLES: Record<AppNavModule, string> = {
   reports: 'Reports & BI',
   referrals: 'Referrals',
   activityAudit: 'Activity & Audit',
-  rulesStudio: 'Rules Studio',
+  rulesStudio: 'Workflow Rules',
   assignmentWorkload: 'Assignment',
   backupsDr: 'Backups & DR',
-  integrations: 'Integrations',
+  integrations: 'Integrations & APIs',
   settings: 'Settings',
 };
 
@@ -141,6 +193,7 @@ export const PERMITTED_MODULES: Record<OsRole, AppNavModule[]> = {
   ceo: ALL_MODULES,
   manager: [
     'dashboard',
+    'socialMedia',
     'inbox',
     'customers',
     'cases',
@@ -169,9 +222,11 @@ export const PERMITTED_MODULES: Record<OsRole, AppNavModule[]> = {
     'activityAudit',
     'rulesStudio',
     'assignmentWorkload',
+    'integrations',
   ],
   employee: [
     'dashboard',
+    'socialMedia',
     'inbox',
     'customers',
     'cases',
@@ -205,6 +260,7 @@ export const PERMITTED_MODULES: Record<OsRole, AppNavModule[]> = {
   ],
   support: [
     'dashboard',
+    'socialMedia',
     'inbox',
     'customers',
     'cases',
@@ -232,6 +288,7 @@ export const PERMITTED_MODULES: Record<OsRole, AppNavModule[]> = {
   ],
   partner: [
     'dashboard',
+    'socialMedia',
     'inbox',
     'cases',
     'umrah',
@@ -267,6 +324,7 @@ export interface LeadRecord {
   phone: string;
   serviceType: string;
   source: string;
+  socialPlatform?: SocialPlatform;
   assignedEmployeeId?: string;
   partnerId?: string;
   status: string;

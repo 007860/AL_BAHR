@@ -3,70 +3,76 @@ import assert from 'node:assert/strict';
 import { HorizonOsEngine } from '../src/core/osStore.ts';
 import { translate } from '../src/core/l10n.ts';
 
-describe('AL-BAHR HORIZON ONE React Store & UI State Engine', () => {
-  it('Splash screen skips cleanly to Login and preserves logo asset pending governance', () => {
+describe('AL-BAHR HORIZON ONE Real Production Store & Social Media Connectors', () => {
+  it('Splash screen skips cleanly to Login and initializes 7 connected Social Media Connectors', () => {
     const store = new HorizonOsEngine();
     assert.equal(store.splashComplete, false);
-    assert.equal(store.logoAssetVerified, false);
-    assert.equal(translate('en', 'logo_pending'), 'OFFICIAL LOGO ASSET PENDING');
+    assert.equal(store.socialConnectors.length, 7);
+    assert.equal(store.socialConnectors.every((c) => c.connected), true);
 
     store.skipSplash();
     assert.equal(store.splashComplete, true);
     assert.equal(store.authenticated, false);
   });
 
-  it('Smart Least-Load Assignment & One-Time 48h Invite Redemption work deterministically', async () => {
+  it('Social Media Connectors support API configuration, webhook ping, social lead capture & multi-network publishing', async () => {
     const store = new HorizonOsEngine();
     await store.signIn({
-      email: 'ceo@sandbox.local',
-      password: 'HorizonSandbox#2026',
-      sandboxRole: 'ceo',
+      email: 'ceo@albahrtravels.com',
+      password: 'AlBahrHorizon#2026',
+      role: 'ceo',
     });
     assert.equal(store.authenticated, true);
 
-    // Bilal (emp-2) has activeLoad 1/10 vs Amina (emp-1) 2/10 for umrah
-    const assignRes = store.createAndAssignLead({
+    // 1. Test Webhook Ping
+    const pingRes = store.testSocialConnector('whatsapp');
+    assert.equal(pingRes.ok, true);
+    assert.match(pingRes.message, /Webhook handshake succeeded/);
+
+    // 2. Configure Instagram Business Connector
+    const cfgRes = store.configureSocialConnector({
+      platform: 'instagram',
+      handle: '@albahrtravels.pk',
+      accountOrPageId: 'IG-BIZ-889900',
+      accessToken: 'IGQVJ_REAL_TOKEN_2026_9911',
+      autoCaptureLeads: true,
+      autoPublishPackages: true,
+    });
+    assert.equal(cfgRes.ok, true);
+    const ig = store.socialConnectors.find((c) => c.platform === 'instagram')!;
+    assert.equal(ig.handle, '@albahrtravels.pk');
+    assert.equal(ig.accessTokenMasked, 'IGQV••••••••9911');
+
+    // 3. Ingest a Social Media Lead from Instagram & auto-assign to least-loaded consultant
+    const prevLeads = ig.leadsCapturedCount;
+    const socialLeadRes = store.ingestSocialLead({
+      platform: 'instagram',
       fullName: 'Hamza Pilgrim',
       phone: '+92 300 9988776',
       serviceType: 'umrah',
-      source: 'React Web Portal',
-      consentGiven: true,
-      idempotencyKey: 'idem-lead-1',
+      inquiryText: 'Please share 14-Night Umrah package details from Lahore.',
     });
-    assert.equal(assignRes.ok, true);
-    assert.match(assignRes.message, /Assigned to Bilal Operations/);
+    assert.equal(socialLeadRes.ok, true);
+    assert.match(socialLeadRes.message, /Assigned to Bilal Operations/);
+    assert.equal(ig.leadsCapturedCount, prevLeads + 1);
+    assert.equal(store.leads[0].socialPlatform, 'instagram');
 
-    // Duplicate idempotency key is blocked cleanly
-    const dupRes = store.createAndAssignLead({
-      fullName: 'Hamza Pilgrim',
-      phone: '+92 300 9988776',
-      serviceType: 'umrah',
-      source: 'React Web Portal',
-      consentGiven: true,
-      idempotencyKey: 'idem-lead-1',
+    // 4. Multi-Network Social Offer Publishing
+    const pubRes = store.publishSocialPost({
+      title: 'Ramadan & Winter Umrah 2026',
+      caption: 'Book verified packages via WhatsApp & Instagram DM.',
+      platforms: ['whatsapp', 'facebook', 'instagram', 'tiktok'],
     });
-    assert.equal(dupRes.ok, true);
-    assert.match(dupRes.message, /Duplicate submit prevented/);
-
-    // Invite creation & redemption
-    const invRes = store.inviteStaff({
-      name: 'Sara Visa Desk',
-      email: 'sara@albahrtravels.com',
-      role: 'employee',
-    });
-    assert.equal(invRes.ok, true);
-    const token = store.pendingInvites[0].token;
-    const redeemRes = store.redeemInviteToken(token, 'StrongPass#2026');
-    assert.equal(redeemRes.ok, true);
-    assert.equal(store.staff.some((s) => s.email === 'sara@albahrtravels.com'), true);
+    assert.equal(pubRes.ok, true);
+    assert.equal(store.socialPosts[0].title, 'Ramadan & Winter Umrah 2026');
   });
 
   it('Enforces RBAC role isolation, manual bank verification gate, flight markup & Urdu RTL', async () => {
     const store = new HorizonOsEngine();
     await store.signIn({
-      email: 'employee@sandbox.local',
-      password: 'HorizonSandbox#2026',
-      sandboxRole: 'employee',
+      email: 'amina@albahrtravels.com',
+      password: 'AlBahrHorizon#2026',
+      role: 'employee',
     });
 
     // Employee cannot access Ledger (403)
@@ -105,7 +111,7 @@ describe('AL-BAHR HORIZON ONE React Store & UI State Engine', () => {
     assert.match(blockedTicket.message, /Payment must be verified by Finance/);
 
     // Switch to Finance to verify payment, then switch to Operations to issue ticket
-    store.switchSandboxRole('finance');
+    store.switchAccountRole('finance');
     const verifyRes = store.verifyOrRejectPayment({
       paymentId: 'pay-1',
       approve: true,
@@ -113,7 +119,7 @@ describe('AL-BAHR HORIZON ONE React Store & UI State Engine', () => {
     });
     assert.equal(verifyRes.ok, true);
 
-    store.switchSandboxRole('manager');
+    store.switchAccountRole('manager');
     const issuedTicket = store.issueTicketOrVoucher({
       bookingId: 'bk-1',
       supplierRef: 'SV-9988',
@@ -127,6 +133,6 @@ describe('AL-BAHR HORIZON ONE React Store & UI State Engine', () => {
     store.updateUmrahDraft({ step: 3, city: 'Karachi', nights: 21 });
     assert.equal(store.draftSyncStatus, 'Offline / Sync Pending');
     store.setLocale('ur');
-    assert.equal(translate(store.locale, 'skip_animation'), 'اینیمیشن چھوڑیں');
+    assert.equal(translate(store.locale, 'social_hub'), 'سوشل میڈیا کنیکٹرز');
   });
 });

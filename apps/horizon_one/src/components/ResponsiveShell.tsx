@@ -21,6 +21,7 @@ import {
   Languages,
   LogOut,
   Search,
+  Share2,
   Ticket,
   WifiOff,
   X,
@@ -59,16 +60,18 @@ export const ResponsiveShell: React.FC = () => {
     }
   };
 
+  const connectedSocialCount = store.socialConnectors.filter((c) => c.connected).length;
+
   return (
     <div
       dir={isRtl ? 'rtl' : 'ltr'}
       className="flex min-h-screen flex-col bg-[#F6F8FB] text-[#0F172A]"
     >
-      {/* Top AppBar: Dark Navy on mobile, clean surface header on desktop */}
+      {/* Top AppBar */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-[#13294B] bg-[#0A192F] px-3 text-white lg:h-16 lg:border-slate-200 lg:bg-white lg:px-6 lg:text-[#0A192F]">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="min-w-0 lg:hidden">
-            <BrandWordmark compact onDark showAssetPendingBadge={false} />
+            <BrandWordmark compact onDark />
           </div>
 
           <div className="hidden items-center gap-4 lg:flex lg:flex-1">
@@ -91,16 +94,28 @@ export const ResponsiveShell: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Icons (Always white on mobile Navy AppBar, slate on Desktop) */}
-        <div className="flex items-center gap-1">
+        {/* Action Icons */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          {permitted.includes('socialMedia') && (
+            <button
+              type="button"
+              title="Social Media Connectors"
+              aria-label="Social Media Connectors"
+              onClick={() => selectModule('socialMedia')}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-[#D9AD32] transition hover:bg-white/10 sm:min-h-11 sm:min-w-11 lg:text-[#0A6C74] lg:hover:bg-slate-100"
+            >
+              <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+          )}
+
           <button
             type="button"
-            title={store.isOffline ? 'Go Online' : 'Simulate Offline'}
-            aria-label={store.isOffline ? 'Go Online' : 'Simulate Offline'}
+            title={store.isOffline ? 'Reconnect Online' : 'Offline Mode'}
+            aria-label={store.isOffline ? 'Reconnect Online' : 'Offline Mode'}
             onClick={() => store.toggleOffline(!store.isOffline)}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10 lg:text-[#0A192F] lg:hover:bg-slate-100"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition hover:bg-white/10 sm:min-h-11 sm:min-w-11 lg:text-[#0A192F] lg:hover:bg-slate-100"
           >
-            {store.isOffline ? <CloudOff className="h-5 w-5 text-[#D9AD32]" /> : <Cloud className="h-5 w-5" />}
+            {store.isOffline ? <CloudOff className="h-4 w-4 text-[#D9AD32] sm:h-5 sm:w-5" /> : <Cloud className="h-4 w-4 sm:h-5 sm:w-5" />}
           </button>
 
           <button
@@ -108,19 +123,19 @@ export const ResponsiveShell: React.FC = () => {
             title="English / Urdu RTL"
             aria-label="English / Urdu RTL"
             onClick={() => store.setLocale(store.locale === 'en' ? 'ur' : 'en')}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10 lg:text-[#0A192F] lg:hover:bg-slate-100"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition hover:bg-white/10 sm:min-h-11 sm:min-w-11 lg:text-[#0A192F] lg:hover:bg-slate-100"
           >
-            <Languages className="h-5 w-5" />
+            <Languages className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           <button
             type="button"
             title="Support Center"
             aria-label="Support Center"
-            onClick={() => store.setModule('support')}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10 lg:text-[#0A192F] lg:hover:bg-slate-100"
+            onClick={() => selectModule('support')}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition hover:bg-white/10 sm:min-h-11 sm:min-w-11 lg:text-[#0A192F] lg:hover:bg-slate-100"
           >
-            <HelpCircle className="h-5 w-5" />
+            <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           <button
@@ -128,9 +143,9 @@ export const ResponsiveShell: React.FC = () => {
             title="Logout"
             aria-label="Logout"
             onClick={() => store.signOut()}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10 lg:text-[#0A192F] lg:hover:bg-slate-100"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition hover:bg-white/10 sm:min-h-11 sm:min-w-11 lg:text-[#0A192F] lg:hover:bg-slate-100"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
       </header>
@@ -149,19 +164,26 @@ export const ResponsiveShell: React.FC = () => {
                 <button
                   key={mod}
                   type="button"
-                  onClick={() => store.setModule(mod)}
-                  className={`flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${
+                  onClick={() => selectModule(mod)}
+                  className={`flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${
                     active
                       ? 'bg-[#13294B] font-bold text-[#D9AD32] shadow-sm'
                       : 'text-white/75 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      active ? 'bg-[#D9AD32]' : 'bg-white/30'
-                    }`}
-                  />
-                  <span className="truncate">{MODULE_TITLES[mod]}</span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${
+                        active ? 'bg-[#D9AD32]' : 'bg-white/30'
+                      }`}
+                    />
+                    <span className="truncate">{MODULE_TITLES[mod]}</span>
+                  </div>
+                  {mod === 'socialMedia' && (
+                    <span className="rounded-full bg-[#117A4B] px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                      {connectedSocialCount} Live
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -171,29 +193,44 @@ export const ResponsiveShell: React.FC = () => {
         {/* Scrollable Content Area */}
         <main className="flex-1 pb-24 lg:pb-10">
           <div className="mx-auto max-w-7xl space-y-4 p-4 sm:p-6">
-            {/* Local Evaluation Sandbox Banner & Role Switcher */}
-            {!store.useLiveServer && (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-[#0A192F]/[0.05] px-3.5 py-2 text-xs">
-                <span className="font-semibold text-[#0A192F]">{t('sandbox_banner')}</span>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="shell-role-switcher" className="font-bold text-slate-600">
-                    Role:
-                  </label>
-                  <select
-                    id="shell-role-switcher"
-                    value={store.currentRole}
-                    onChange={(e) => store.switchSandboxRole(e.target.value as OsRole)}
-                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-[#0A192F]"
-                  >
-                    {ALL_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_TITLES[r]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* Top Workspace Status & Account Role Switcher Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs shadow-2xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex h-2 w-2 rounded-full bg-[#117A4B]" />
+                <span className="font-bold text-[#0A192F]">{store.currentUserName}</span>
+                <span className="text-slate-400">·</span>
+                <span className="text-slate-600">{t('workspace_bar')}</span>
               </div>
-            )}
+
+              <div className="flex items-center gap-2">
+                {permitted.includes('socialMedia') && (
+                  <button
+                    type="button"
+                    onClick={() => selectModule('socialMedia')}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#E8F8F0] px-2.5 py-1 text-[11px] font-extrabold text-[#117A4B] transition hover:bg-[#d3f2e3]"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Social Connectors ({connectedSocialCount} Live)
+                  </button>
+                )}
+
+                <label htmlFor="shell-role-switcher" className="font-bold text-slate-600">
+                  Account:
+                </label>
+                <select
+                  id="shell-role-switcher"
+                  value={store.currentRole}
+                  onChange={(e) => store.switchAccountRole(e.target.value as OsRole)}
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-bold text-[#0A192F]"
+                >
+                  {ALL_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_TITLES[r]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             {/* Offline Warning Banner */}
             {store.isOffline && (
@@ -324,6 +361,7 @@ export const ResponsiveShell: React.FC = () => {
               </h2>
               <button
                 type="button"
+                aria-label="Close modules drawer"
                 onClick={() => setMoreDrawerOpen(false)}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700"
               >
@@ -336,7 +374,7 @@ export const ResponsiveShell: React.FC = () => {
                   key={m}
                   type="button"
                   onClick={() => {
-                    store.setModule(m);
+                    selectModule(m);
                     setMoreDrawerOpen(false);
                   }}
                   className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition ${
